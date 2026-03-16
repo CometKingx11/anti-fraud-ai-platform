@@ -1,7 +1,11 @@
-"""
-应用启动文件
-负责创建应用实例并运行服务器
-"""
+'''
+Author: 小土豆233
+Date: 2026-03-17 00:08:35
+LastEditTime: 2026-03-17 00:12:47
+LastEditors: 小土豆233
+Description: 应用启动文件, 负责创建应用实例并运行服务器
+FilePath: \flask_anti_project\run.py
+'''
 
 from app import create_app
 from config.settings import config
