@@ -1,0 +1,40 @@
+<!--
+ * @Author: 小土豆233
+ * @Date: 2026-03-17 00:04:26
+ * @LastEditTime: 2026-03-17 00:18:17
+ * @LastEditors: 小土豆233
+ * @Description: 登录模板
+ * @FilePath: \flask_anti_project\app\templates\auth\login.html
+-->
+{% extends "base.html" %}
+
+{% block title %}登录 - 反诈风险评估平台{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white text-center">
+                <h4>大学生反诈风险评估平台</h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    <div class="mb-3">
+                        <label class="form-label">学号</label>
+                        <input type="text" name="student_id" class="form-control" required autofocus>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">密码</label>
+                        <input type="password" name="password" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">登录</button>
+                </form>
+            </div>
+            <div class="card-footer text-center text-muted">
+                管理员账号：admin / admin123<br>
+                学生账号请联系管理员开通
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
