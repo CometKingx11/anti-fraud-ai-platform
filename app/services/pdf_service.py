@@ -1,11 +1,9 @@
-'''
-Author: 小土豆233
-Date: 2026-03-16 23:42:18
-LastEditTime: 2026-03-16 23:42:27
-LastEditors: 小土豆233
-Description: PDF服务, 处理评估报告的PDF导出功能
-FilePath: \flask_anti_project\app\__init__.py
-'''
+# Author: 小土豆233
+# Date: 2026-03-16 23:42:18
+# LastEditTime: 2026-03-16 23:42:27
+# LastEditors: 小土豆233
+# Description: PDF 服务，处理评估报告的 PDF 导出功能
+# FilePath: flask_anti_project\app\services\pdf_service.py
 
 import io
 from reportlab.lib.pagesizes import A4
