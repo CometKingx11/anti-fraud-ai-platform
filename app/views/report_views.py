@@ -1,11 +1,9 @@
-'''
-Author: 小土豆233
-Date: 2026-03-17 00:11:19
-LastEditTime: 2026-03-17 00:15:13
-LastEditors: 小土豆233
-Description: 报告视图控制器, 处理评估报告相关的请求
-FilePath: \flask_anti_project\app\views\report_views.py
-'''
+# Author: 小土豆233
+# Date: 2026-03-17 00:11:19
+# LastEditTime: 2026-03-17 00:15:13
+# LastEditors: 小土豆233
+# Description: 报告视图控制器，处理评估报告相关的请求
+# FilePath: flask_anti_project\app\views\report_views.py
 
 from flask import Blueprint, render_template, redirect, url_for, flash, session, current_app, send_file
 from flask_login import login_required, current_user
