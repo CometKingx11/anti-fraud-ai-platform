@@ -1,11 +1,9 @@
-'''
-Author: 小土豆233
-Date: 2026-03-16 23:42:18
-LastEditTime: 2026-03-16 23:42:27
-LastEditors: 小土豆233
-Description: 提交数据模型, 存储用户的问卷提交记录
-FilePath: \flask_anti_project\app\__init__.py
-'''
+# Author: 小土豆233
+# Date: 2026-03-16 23:42:18
+# LastEditTime: 2026-03-16 23:42:27
+# LastEditors: 小土豆233
+# Description: 提交数据模型，存储用户的问卷提交记录
+# FilePath: flask_anti_project\app\models\submission.py
 
 from datetime import datetime
 from app import db
