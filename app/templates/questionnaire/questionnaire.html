@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}问卷 - 大学生反诈风险评估{% endblock %}
+
+{% block content %}
+<h2 class="text-center mb-4">大学生反诈风险评估问卷（28题）</h2>
+<p class="lead text-center text-muted mb-5">
+    请根据实际情况选择（1 = 完全不符合 / 完全不清楚 / 从不 → 5 = 完全符合 / 非常清楚 / 经常），提交后自动评估风险等级。
+</p>
+
+<form method="post" action="{{ url_for('questionnaire.submit') }}" enctype="multipart/form-data">
+    <!-- 测试专用：自动填充按钮 -->
+    <div class="text-center mb-4">
+        <button type="button" id="autoFillBtn" class="btn btn-warning btn-lg">
+            一键自动填充（测试用，模拟中等偏高风险）
+        </button>
+    </div>
+
+    <script>
+        document.getElementById('autoFillBtn').addEventListener('click', function () {
+            // 自动填充所有 <select>（name 以 q 开头）
+            const selects = document.querySelectorAll('select[name^="q"]');
+            selects.forEach(select => {
+                const qNum = parseInt(select.name.replace('q', ''));
+
+                // 认知题（1-10）：选低分（风险高），默认2或3
+                if (qNum >= 1 && qNum <= 10) {
+                    select.value = (qNum % 3 === 0) ? '2' : '3';  // 交替2和3
+                }
+                // 行为风险题（11-20）：选高分（风险高），默认4或5
+                else if (qNum >= 11 && qNum <= 20) {
+                    select.value = (qNum % 2 === 0) ? '4' : '5';  // 交替4和5
+                }
+                // 经历暴露题（21-28）：选中等偏高，默认3或4
+                else if (qNum >= 21 && qNum <= 28) {
+                    select.value = (qNum % 3 === 1) ? '3' : '4';
+                }
+            });
+
+            // 可选：开放题也自动填一点内容
+            document.querySelector('textarea[name="open1"]').value = "有人加我微信说刷单日赚800元，还发给我转账截图让我先垫付";
+            document.querySelector('textarea[name="open2"]').value = "收到一条短信说是建设银行预授信29.8万，让我点链接激活";
+
+            alert('已自动填充问卷选项（测试用）！现在可以直接提交查看报告了。');
+        });
+    </script>
+
+    <!-- 一、反诈认知维度（10题） -->
+    <h4 class="mt-5 mb-3">一、反诈认知维度（10题）</h4>
+    {% for i in range(1, 11) %}
+    <div class="question mb-3">
+        <label class="question-label fw-bold d-block mb-2"> {{ i }}.
+            {% if i == 1 %}你清楚电信网络诈骗的常见手段吗？{% endif %}
+            {% if i == 2 %}你知道国家反诈中心App的主要功能吗？{% endif %}
+            {% if i == 3 %}你能准确识别"刷单返利""冒充公检法""杀猪盘"等诈骗类型吗？{% endif %}
+            {% if i == 4 %}你了解受骗后的正确止损流程（保留证据→报警→冻结账户）吗？{% endif %}
+            {% if i == 5 %}你知道"金钟罩"小程序的作用吗？{% endif %}
+            {% if i == 6 %}你经常阅读学校或官方发布的反诈宣传材料吗？{% endif %}
+            {% if i == 7 %}你认为自己对网络诈骗的识别能力如何？{% endif %}
+            {% if i == 8 %}你知道如何验证陌生来电/短信的真实性吗？{% endif %}
+            {% if i == 9 %}你了解个人信息泄露的常见途径吗？{% endif %}
+            {% if i == 10 %}你知道受骗后正确报警和联系银行的流程吗？{% endif %}
+        </label>
+        <select name="q{{ i }}" class="form-select" required>
+            <option value="">请选择</option>
+            <option value="1">1 - 完全不符合/完全不清楚/从不</option>
+            <option value="2">2 - 不太符合/不太清楚/很少</option>
+            <option value="3">3 - 一般/有时</option>
+            <option value="4">4 - 比较符合/比较清楚/经常</option>
+            <option value="5">5 - 非常符合/非常清楚/总是</option>
+        </select>
+    </div>
+    {% endfor %}
+
+    <!-- 二、行为风险维度（10题） -->
+    <h4 class="mt-5 mb-3">二、行为风险维度（10题）</h4>
+    {% for i in range(11, 21) %}
+    <div class="question mb-3">
+        <label class="question-label fw-bold d-block mb-2"> {{ i }}.
+            {% if i == 11 %}你是否经常点击陌生链接或下载不明App？{% endif %}
+            {% if i == 12 %}你是否参与过"刷单返利""任务赚钱"等活动？{% endif %}
+            {% if i == 13 %}你是否轻易把验证码、银行卡信息告诉陌生人？{% endif %}
+            {% if i == 14 %}你是否在微信/QQ上添加大量陌生好友？{% endif %}
+            {% if i == 15 %}你是否使用同一密码在多个平台注册？{% endif %}
+            {% if i == 16 %}你容易被"高回报、低风险"的广告吸引吗？{% endif %}
+            {% if i == 17 %}你是否在二手平台/校园贷平台频繁交易？{% endif %}
+            {% if i == 18 %}你遇到"限时优惠"或"最后机会"时会冲动消费/转账吗？{% endif %}
+            {% if i == 19 %}你下载App时会查看权限和开发者信息吗？{% endif %}
+            {% if i == 20 %}你是否轻易相信"熟人/领导/客服"发来的紧急求助信息？{% endif %}
+        </label>
+        <select name="q{{ i }}" class="form-select" required>
+            <option value="">请选择</option>
+            <option value="1">1 - 从不</option>
+            <option value="2">2 - 很少</option>
+            <option value="3">3 - 有时</option>
+            <option value="4">4 - 经常</option>
+            <option value="5">5 - 非常经常/非常相信</option>
+        </select>
+    </div>
+    {% endfor %}
+
+    <!-- 三、经历与环境暴露维度（8题） -->
+    <h4 class="mt-5 mb-3">三、经历与环境暴露维度（8题）</h4>
+    {% for i in range(21, 29) %}
+    <div class="question mb-3">
+        <label class="question-label fw-bold d-block mb-2"> {{ i }}.
+            {% if i == 21 %}你或身边同学是否遭遇过电信诈骗？{% endif %}
+            {% if i == 22 %}你每天使用微信/支付宝/抖音等App时长超过4小时吗？{% endif %}
+            {% if i == 23 %}你是否经常收到陌生电话/短信/私信？{% endif %}
+            {% if i == 24 %}你是否在网络上公开过多个人信息（如手机号、身份证）？{% endif %}
+            {% if i == 25 %}你是否把银行卡绑定了多个高风险App？{% endif %}
+            {% if i == 26 %}你是否参与过"网络贷款"或"校园贷"？{% endif %}
+            {% if i == 27 %}你是否在兼职群/投资群里活跃并转账？{% endif %}
+            {% if i == 28 %}你是否曾因网络兼职/投资被扣押资金或损失？{% endif %}
+        </label>
+        <select name="q{{ i }}" class="form-select" required>
+            <option value="">请选择</option>
+            <option value="1">1 - 从未/很少</option>
+            <option value="2">2 - 很少/偶尔</option>
+            <option value="3">3 - 有时/经常</option>
+            <option value="4">4 - 经常/很多</option>
+            <option value="5">5 - 非常/每天很多/严重损失</option>
+        </select>
+    </div>
+    {% endfor %}
+
+    <!-- 四、多模态补充（开放描述，2题，可选） -->
+    <h4 class="mt-5 mb-3">四、多模态补充（开放描述，可选）</h4>
+    <div class="question mb-3">
+        <label class="question-label fw-bold d-block mb-2">29. 请描述最近收到的一条可疑消息内容或聊天记录（可选）</label>
+        <textarea name="open1" class="form-control" rows="4" placeholder="例如：粘贴短信/微信内容，或描述情况..."></textarea>
+    </div>
+    <div class="question mb-3">
+        <label class="question-label fw-bold d-block mb-2">30. 请描述最近遇到的可疑链接、二维码或截图场景（可选）</label>
+        <textarea name="open2" class="form-control" rows="4" placeholder="例如：链接地址、截图描述..."></textarea>
+    </div>
+
+    <!-- 五、上传可疑截图（可选） -->
+    <h4 class="mt-5 mb-3">五、上传可疑截图（可选，支持多张 JPG/PNG）</h4>
+    <div class="mb-4">
+        <input type="file" name="images" class="form-control" accept="image/jpeg,image/png" multiple>
+        <small class="form-text text-muted">最多上传5张，每张不超过5MB。支持聊天记录、短信、二维码、快递单截图等。</small>
+        <div id="imagePreview" class="mt-3 row"></div>
+    </div>
+
+    <script>
+        document.querySelector('input[name="images"]').addEventListener('change', function (e) {
+            const preview = document.getElementById('imagePreview');
+            preview.innerHTML = '';
+            Array.from(e.target.files).forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    const img = document.createElement('img');
+                    img.src = URL.createObjectURL(file);
+                    img.style.maxWidth = '150px';
+                    img.style.margin = '10px';
+                    img.classList.add('img-thumbnail');
+                    preview.appendChild(img);
+                }
+            });
+        });
+    </script>
+
+    <!-- 提交按钮 -->
+    <button type="submit" class="btn btn-success btn-lg w-100 mt-5 mb-5">提交问卷并评估风险</button>
+</form>
+{% endblock %}
