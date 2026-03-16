@@ -1,12 +1,10 @@
-'''
-Author: 小土豆233
-Date: 2026-03-16 23:42:18
-LastEditTime: 2026-03-16 23:42:27
-LastEditors: 小土豆233
-Description: Flask反诈风险评估系统主应用入口
-采用MVC架构, 实现了模块化设计
-FilePath: \flask_anti_project\app\__init__.py
-'''
+# Author: 小土豆233
+# Date: 2026-03-16 23:42:18
+# LastEditTime: 2026-03-16 23:42:27
+# LastEditors: 小土豆233
+# Description: Flask 反诈风险评估系统主应用入口
+# 采用 MVC 架构，实现了模块化设计
+# FilePath: flask_anti_project\app\__init__.py
 
 from config.settings import Config
 from flask_migrate import Migrate
@@ -25,10 +23,10 @@ def create_app(config_class=Config):
     """
     应用工厂函数
     创建并配置Flask应用实例
-    
+
     Args:
         config_class: 配置类，默认为Config
-    
+
     Returns:
         Flask: 配置好的Flask应用实例
     """
@@ -45,6 +43,12 @@ def create_app(config_class=Config):
     login_manager.login_message = '请先登录'
     login_manager.login_message_category = 'warning'
 
+    # 配置用户加载函数
+    @login_manager.user_loader
+    def load_user(user_id):
+        from app.models.user import User
+        return User.query.get(int(user_id))
+
     # 注册蓝图
     register_blueprints(app)
 
@@ -59,7 +63,7 @@ def register_blueprints(app):
     """
     注册应用蓝图
     将不同功能模块的视图注册到应用中
-    
+
     Args:
         app: Flask应用实例
     """
