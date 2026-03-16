@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}评估报告 - 大学生反诈风险评估{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .card {
+        margin: 30px auto;
+        max-width: 900px;
+        border: none;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .card-header {
+        background: linear-gradient(90deg, #0d6efd, #0b5ed7);
+        color: white;
+        padding: 20px;
+        text-align: center;
+    }
+
+    .card-header h3 {
+        margin: 0;
+        font-weight: 600;
+    }
+
+    .risk-low {
+        color: #198754;
+        font-weight: bold;
+        font-size: 1.8rem;
+    }
+
+    .risk-mid {
+        color: #fd7e14;
+        font-weight: bold;
+        font-size: 1.8rem;
+    }
+
+    .risk-high {
+        color: #dc3545;
+        font-weight: bold;
+        font-size: 1.8rem;
+    }
+
+    .section-title {
+        color: #0d6efd;
+        border-bottom: 2px solid #0d6efd;
+        padding-bottom: 8px;
+        margin-bottom: 15px;
+        font-weight: 600;
+    }
+
+    .list-group-item {
+        border-left: 4px solid #0d6efd;
+        margin-bottom: 8px;
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+        color: #155724;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>您的反诈风险评估报告</h3>
+    </div>
+    <div class="card-body p-4">
+
+        <!-- AI 状态提示 -->
+        <div class="alert alert-success text-center mb-4">
+            <strong>✅ AI分析已完成</strong>（通义千问大模型生成）
+        </div>
+
+        <!-- 风险等级 -->
+        <div class="text-center mb-4">
+            <h4>风险等级：</h4>
+            {% if data.risk_level == '低风险' %}
+            <span class="risk-low">{{ data.risk_level }}</span>
+            {% elif data.risk_level == '中风险' %}
+            <span class="risk-mid">{{ data.risk_level }}</span>
+            {% else %}
+            <span class="risk-high">{{ data.risk_level }}</span>
+            {% endif %}
+        </div>
+
+        <hr class="my-4">
+
+        <!-- 分数对比 -->
+        <div class="row text-center mb-4">
+            <div class="col-md-6">
+                <p class="mb-1 text-muted">基础分（问卷规则）</p>
+                <h5>{{ data.base_score }}/100</h5>
+            </div>
+            <div class="col-md-6">
+                <p class="mb-1 text-muted">最终分（AI修正）</p>
+                <h5>{{ data.final_score }}/130</h5>
+            </div>
+        </div>
+
+        <hr class="my-4">
+
+        <!-- 维度得分 -->
+        <h5 class="section-title">维度得分详情</h5>
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <div class="card bg-light border-0">
+                    <div class="card-body text-center">
+                        <p class="mb-1 text-muted">认知维度</p>
+                        <h5>{{ data.cognitive }}/40</h5>
+                        <small class="text-muted">（越高越安全）</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card bg-light border-0">
+                    <div class="card-body text-center">
+                        <p class="mb-1 text-muted">行为维度</p>
+                        <h5>{{ data.behavior }}/40</h5>
+                        <small class="text-muted">（越高风险越大）</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card bg-light border-0">
+                    <div class="card-body text-center">
+                        <p class="mb-1 text-muted">经历维度</p>
+                        <h5>{{ data.experience }}/20</h5>
+                        <small class="text-muted">（越高风险越大）</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <hr class="my-4">
+
+        <!-- 开放描述 -->
+        <h5 class="section-title">开放描述</h5>
+        <div class="alert alert-info">
+            {{ data.open_text | default('无开放描述', true) | replace('\n', '<br>') | safe }}
+        </div>
+
+        <hr class="my-4">
+
+        <!-- 风险点分析 -->
+        <h5 class="section-title">风险点分析</h5>
+        {% if data.risk_points and data.risk_points|length > 0 %}
+        <ul class="list-group">
+            {% for point in data.risk_points %}
+            <li class="list-group-item">{{ point }}</li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted">暂无识别出具体风险点</p>
+        {% endif %}
+
+        <!-- 详细分析 -->
+        <hr class="my-4">
+        <h5 class="section-title">详细分析总结</h5>
+        <p class="lead text-dark">
+            {{ data.analysis | default('暂无大模型分析内容', true) }}
+        </p>
+
+        <!-- 个性化建议 -->
+        <hr class="my-4">
+        <h5 class="section-title">个性化反诈建议</h5>
+        {% if data.suggestions and data.suggestions|length > 0 %}
+        <ul class="list-group">
+            {% for sug in data.suggestions %}
+            <li class="list-group-item">{{ sug }}</li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted">暂无个性化建议</p>
+        {% endif %}
+
+        <!-- 推荐推送内容 -->
+        <hr class="my-4">
+        <h5 class="section-title">推荐推送内容</h5>
+        {% if data.push_contents and data.push_contents|length > 0 %}
+        <ul class="list-group">
+            {% for push in data.push_contents %}
+            <li class="list-group-item">{{ push }}</li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted">暂无推荐推送内容</p>
+        {% endif %}
+
+    </div>
+
+    <div class="card-footer text-center bg-light py-4">
+        <a href="{{ url_for('questionnaire.index') }}" class="btn btn-lg btn-outline-primary me-3">
+            重新填写问卷
+        </a>
+        <a href="{{ url_for('report.export_pdf') }}" class="btn btn-lg btn-success">
+            导出PDF报告
+        </a>
+    </div>
+</div>
+{% endblock %}
