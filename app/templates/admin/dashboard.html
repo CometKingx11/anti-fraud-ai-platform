@@ -1,0 +1,54 @@
+<!--
+ * @Author: 小土豆233
+ * @Date: 2026-03-17 00:06:18
+ * @LastEditTime: 2026-03-17 00:19:31
+ * @LastEditors: 小土豆233
+ * @Description: 管理员模板
+ * @FilePath: \flask_anti_project\app\templates\admin\dashboard.html
+-->
+{% extends "base.html" %}
+
+{% block title %}管理员后台 - 反诈风险评估平台{% endblock %}
+
+{% block content %}
+<h2 class="mb-4 text-center">管理员后台 - 所有提交记录</h2>
+
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th>学号</th>
+            <th>姓名</th>
+            <th>基础分</th>
+            <th>最终分</th>
+            <th>风险等级</th>
+            <th>认知维度</th>
+            <th>行为维度</th>
+            <th>经历维度</th>
+            <th>提交时间</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for s in submissions %}
+        <tr>
+            <td>{{ s.user.student_id }}</td>
+            <td>{{ s.user.name or '未填写' }}</td>
+            <td>{{ s.base_score }}/100</td>
+            <td>{{ s.final_score }}/130</td>
+            <td>
+                {% if s.risk_level == '高风险' or s.risk_level == '极高风险' %}
+                <span class="badge bg-danger">{{ s.risk_level }}</span>
+                {% elif s.risk_level == '中风险' %}
+                <span class="badge bg-warning text-dark">{{ s.risk_level }}</span>
+                {% else %}
+                <span class="badge bg-success">{{ s.risk_level }}</span>
+                {% endif %}
+            </td>
+            <td>{{ s.cognitive }}/40</td>
+            <td>{{ s.behavior }}/40</td>
+            <td>{{ s.experience }}/20</td>
+            <td>{{ s.submitted_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
