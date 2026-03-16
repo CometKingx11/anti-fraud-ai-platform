@@ -1,0 +1,74 @@
+'''
+Author: 小土豆233
+Date: 2026-03-16 23:42:18
+LastEditTime: 2026-03-16 23:42:27
+LastEditors: 小土豆233
+Description: Flask反诈风险评估系统主应用入口
+采用MVC架构, 实现了模块化设计
+FilePath: \flask_anti_project\app\__init__.py
+'''
+
+from config.settings import Config
+from flask_migrate import Migrate
+from flask_login import LoginManager
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+
+
+# 初始化扩展组件
+db = SQLAlchemy()
+login_manager = LoginManager()
+migrate = Migrate()
+
+
+def create_app(config_class=Config):
+    """
+    应用工厂函数
+    创建并配置Flask应用实例
+    
+    Args:
+        config_class: 配置类，默认为Config
+    
+    Returns:
+        Flask: 配置好的Flask应用实例
+    """
+    app = Flask(__name__)
+    app.config.from_object(config_class)
+
+    # 初始化扩展
+    db.init_app(app)
+    login_manager.init_app(app)
+    migrate.init_app(app, db)
+
+    # 设置登录管理器配置
+    login_manager.login_view = 'auth.login'
+    login_manager.login_message = '请先登录'
+    login_manager.login_message_category = 'warning'
+
+    # 注册蓝图
+    register_blueprints(app)
+
+    # 创建数据库表
+    with app.app_context():
+        db.create_all()
+
+    return app
+
+
+def register_blueprints(app):
+    """
+    注册应用蓝图
+    将不同功能模块的视图注册到应用中
+    
+    Args:
+        app: Flask应用实例
+    """
+    from app.views.auth_views import auth_bp
+    from app.views.questionnaire_views import questionnaire_bp
+    from app.views.report_views import report_bp
+    from app.views.admin_views import admin_bp
+
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(questionnaire_bp)
+    app.register_blueprint(report_bp)
+    app.register_blueprint(admin_bp)
