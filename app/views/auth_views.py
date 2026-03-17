@@ -33,12 +33,28 @@ def login():
         # 查找用户
         user = User.get_by_student_id(student_id)
 
-        if user and user.check_password(password):
-            # 登录成功
-            login_user(user, remember=remember)
-            next_page = request.args.get('next')
-            flash('登录成功', 'success')
-            return redirect(next_page) if next_page else redirect(url_for('questionnaire.index'))
+        if user:
+            # 检查用户是否被禁用
+            if user.is_disabled():
+                flash('您的账户已被禁用，请联系管理员', 'danger')
+                return render_template('auth/login.html')
+
+            # 验证密码
+            if user.check_password(password):
+                # 登录成功
+                login_user(user, remember=remember)
+
+                # 更新最后登录时间
+                user.update_last_login()
+
+                # 清除可能的警告信息
+                session.pop('_flashes', None)
+
+                next_page = request.args.get('next')
+                flash('登录成功', 'success')
+                return redirect(next_page) if next_page else redirect(url_for('questionnaire.index'))
+            else:
+                flash('学号或密码错误', 'danger')
         else:
             flash('学号或密码错误', 'danger')
 
@@ -51,6 +67,12 @@ def logout():
     """
     用户登出
     """
+    from flask_login import logout_user
     logout_user()
+
+    # 清理 session 中的敏感数据
+    session.pop('assessment', None)
+    session.pop('_flashes', None)
+
     flash('已退出登录', 'info')
     return redirect(url_for('auth.login'))
