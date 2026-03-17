@@ -112,7 +112,7 @@ class AssessmentService:
         ai_service = AIAnalysisService()
         ai_result = ai_service.analyze_assessment(assessment_data)
 
-        # 整合AI分析结果
+        # 整合 AI 分析结果
         assessment_data.update({
             'final_score': ai_result.get('final_score', scores['base_score']),
             'risk_level': ai_result.get('risk_level', AssessmentService.determine_risk_level(scores['base_score'])),
@@ -121,6 +121,15 @@ class AssessmentService:
             'suggestions': ai_result.get('suggestions', []),
             'push_contents': ai_result.get('push_contents', [])
         })
+
+        # 将列表类型的字段转换为 JSON 字符串
+        import json
+        json_fields = ['risk_points', 'suggestions',
+                       'push_contents', 'uploaded_images']
+        for field in json_fields:
+            if field in assessment_data and isinstance(assessment_data[field], list):
+                assessment_data[field] = json.dumps(
+                    assessment_data[field], ensure_ascii=False)
 
         # 保存提交记录
         submission = Submission(**assessment_data)
