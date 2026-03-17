@@ -25,6 +25,7 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(128), nullable=False)
     role = db.Column(db.String(20), default='student', nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
+    last_login = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -49,6 +50,23 @@ class User(UserMixin, db.Model):
             bool: 密码是否正确
         """
         return check_password_hash(self.password_hash, password)
+
+    def is_disabled(self):
+        """
+        检查用户是否被禁用
+
+        Returns:
+            bool: 如果用户被禁用返回 True，否则返回 False
+        """
+        return not self.is_active
+
+    def update_last_login(self):
+        """
+        更新最后登录时间
+        """
+        from app import db
+        self.last_login = datetime.utcnow()
+        db.session.commit()
 
     def get_id(self):
         """
