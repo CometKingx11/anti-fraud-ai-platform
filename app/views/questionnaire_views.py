@@ -9,6 +9,7 @@ import os
 import json
 from app.services.assessment_service import AssessmentService
 from app.utils.helpers import generate_safe_filename, validate_image_file, ensure_upload_directory
+from app.utils.decorators import prevent_duplicate_submission
 from app import db
 
 # 创建问卷蓝图
@@ -28,13 +29,14 @@ def index():
 
 @questionnaire_bp.route('/submit', methods=['POST'])
 @login_required
+@prevent_duplicate_submission(hours=24)  # 防止 24 小时内重复提交
 def submit():
     """
     提交问卷
     处理问卷提交并进行风险评估
     """
     try:
-        # 收集28题答案
+        # 收集 28 题答案
         answers = {}
         for i in range(1, 29):
             key = f'q{i}'
@@ -77,21 +79,25 @@ def submit():
                             print(f"保存失败：{str(e)}")
                             flash(f'保存图片失败：{str(e)}', 'danger')
 
+        # 获取用户 IP 地址
+        ip_address = request.remote_addr
+
         # 处理问卷提交
         assessment_data = AssessmentService.process_questionnaire_submission(
             user_id=current_user.id,
             answers=answers,
             open_texts=open_texts,
-            uploaded_images=uploaded_images
+            uploaded_images=uploaded_images,
+            ip_address=ip_address
         )
 
-        # 将评估结果存储到session中
+        # 将评估结果存储到 session 中
         session['assessment'] = assessment_data
 
         if uploaded_images:
-            flash(f'成功保存 {len(uploaded_images)} 张图片，已用于AI分析。', 'success')
+            flash(f'成功保存 {len(uploaded_images)} 张图片，已用于 AI 分析。', 'success')
         else:
-            flash('提交成功（未上传图片）', 'info')
+            flash('提交成功，问卷将在 24 小时后才能再次提交', 'info')
 
         return redirect(url_for('report.view'))
 
