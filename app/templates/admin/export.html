@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}导出数据{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">
+        <i class="fas fa-download"></i> 导出数据
+    </h1>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-filter"></i> 筛选条件</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('admin.export_csv') }}" method="GET">
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="start_date">开始日期</label>
+                                <input type="date" class="form-control" id="start_date" name="start_date">
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="end_date">结束日期</label>
+                                <input type="date" class="form-control" id="end_date" name="end_date">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="risk_level">风险等级</label>
+                            <select class="form-control" id="risk_level" name="risk_level">
+                                <option value="">全部</option>
+                                <option value="低风险">低风险</option>
+                                <option value="中风险">中风险</option>
+                                <option value="高风险">高风险</option>
+                                <option value="极高风险">极高风险</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>导出格式</label>
+                            <div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="format" id="format_csv"
+                                        value="csv" checked>
+                                    <label class="form-check-label" for="format_csv">CSV 格式</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="format" id="format_excel"
+                                        value="excel">
+                                    <label class="form-check-label" for="format_excel">PDF 格式</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" onclick="setExportAction()">
+                            <i class="fas fa-download"></i> 导出数据
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5><i class="fas fa-info-circle"></i> 导出说明</h5>
+                    <hr>
+                    <p><strong>CSV 格式：</strong></p>
+                    <ul>
+                        <li>可用 Excel 打开</li>
+                        <li>包含所有字段信息</li>
+                        <li>适合数据处理和分析</li>
+                    </ul>
+                    <p><strong>PDF 格式：</strong></p>
+                    <ul>
+                        <li>格式化表格</li>
+                        <li>适合打印和查看</li>
+                        <li>包含统计信息</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回仪表板
+        </a>
+        <a href="{{ url_for('admin.users') }}" class="btn btn-info">
+            <i class="fas fa-users"></i> 用户管理
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function setExportAction() {
+        const format = document.querySelector('input[name="format"]:checked').value;
+        const form = document.querySelector('form');
+
+        if (format === 'excel') {
+            form.action = "{{ url_for('admin.export_excel') }}";
+        } else {
+            form.action = "{{ url_for('admin.export_csv') }}";
+        }
+    }
+</script>
+{% endblock %}
