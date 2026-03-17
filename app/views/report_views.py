@@ -8,6 +8,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, session, current_app, send_file
 from flask_login import login_required, current_user
 from app.services.pdf_service import PDFService
+from app.utils.decorators import validate_submission_ownership
 import json
 
 # 创建报告蓝图
@@ -16,16 +17,32 @@ report_bp = Blueprint('report', __name__, url_prefix='/report')
 
 @report_bp.route('/')
 @login_required
+@validate_submission_ownership
 def view():
     """
     查看评估报告
     显示用户的评估结果
     """
     if 'assessment' not in session:
-        flash('无评估数据，请先填写问卷', 'warning')
-        return redirect(url_for('questionnaire.index'))
+        # 尝试从数据库加载最近的提交记录
+        from app.models.submission import Submission
+        recent_submission = Submission.query.filter_by(
+            user_id=current_user.id
+        ).order_by(Submission.submitted_at.desc()).first()
 
-    # 解析JSON数据
+        if recent_submission:
+            # 验证数据完整性
+            if not recent_submission.verify_integrity():
+                flash('警告：该报告数据可能已被篡改', 'danger')
+
+            # 将数据库记录转换为 session 格式
+            assessment_data = recent_submission.to_dict()
+            session['assessment'] = assessment_data
+        else:
+            flash('无评估数据，请先填写问卷', 'warning')
+            return redirect(url_for('questionnaire.index'))
+
+    # 解析 JSON 数据
     assessment_data = session['assessment'].copy()
     json_fields = ['risk_points', 'suggestions', 'push_contents']
     for field in json_fields:
