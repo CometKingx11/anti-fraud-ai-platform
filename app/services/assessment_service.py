@@ -75,15 +75,16 @@ class AssessmentService:
             return "极高风险"
 
     @staticmethod
-    def process_questionnaire_submission(user_id, answers, open_texts, uploaded_images):
+    def process_questionnaire_submission(user_id, answers, open_texts, uploaded_images, ip_address=None):
         """
         处理问卷提交
 
         Args:
-            user_id (int): 用户ID
+            user_id (int): 用户 ID
             answers (dict): 问卷答案
             open_texts (dict): 开放性问题文本
             uploaded_images (list): 上传的图片路径列表
+            ip_address (str): 用户 IP 地址
 
         Returns:
             dict: 评估结果
@@ -105,7 +106,8 @@ class AssessmentService:
             'behavior': scores['behavior'],
             'experience': scores['experience'],
             'open_text': open_text,
-            'uploaded_images': uploaded_images
+            'uploaded_images': uploaded_images,
+            'ip_address': ip_address
         }
 
         # 使用AI进行进一步分析
