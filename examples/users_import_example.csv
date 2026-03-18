@@ -1,0 +1,6 @@
+student_id,name,email,role,password
+20240001，张三，zhangsan@example.com,student,123456
+20240002，李四，lisi@example.com,student,123456
+20240003，王五，wangwu@example.com,student,123456
+20240004，赵六，zhaoliu@example.com,teacher,123456
+20240005，孙七，sunqi@example.com,student,123456
