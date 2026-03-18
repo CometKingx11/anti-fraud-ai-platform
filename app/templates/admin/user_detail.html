@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+
+{% block title %}用户详情 - {{ user.student_id }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- 返回按钮 -->
+    <div class="mb-3">
+        <a href="{{ url_for('admin.users') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回用户列表
+        </a>
+    </div>
+
+    <div class="row">
+        <!-- 用户基本信息卡片 -->
+        <div class="col-md-4">
+            <div class="card bg-light">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-user"></i> 基本信息</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-user-circle fa-5x text-secondary"></i>
+                    </div>
+                    <table class="table table-sm">
+                        <tr>
+                            <th width="40%">用户 ID：</th>
+                            <td>{{ user.id }}</td>
+                        </tr>
+                        <tr>
+                            <th>学号：</th>
+                            <td>{{ user.student_id }}</td>
+                        </tr>
+                        <tr>
+                            <th>姓名：</th>
+                            <td>{{ user.name or '未设置' }}</td>
+                        </tr>
+                        <tr>
+                            <th>邮箱：</th>
+                            <td>{{ user.email or '未设置' }}</td>
+                        </tr>
+                        <tr>
+                            <th>角色：</th>
+                            <td>
+                                {% if user.role == 'admin' %}
+                                <span class="badge bg-danger">管理员</span>
+                                {% elif user.role == 'teacher' %}
+                                <span class="badge bg-info text-white">教师</span>
+                                {% else %}
+                                <span class="badge bg-secondary">学生</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>状态：</th>
+                            <td>
+                                {% if user.is_active %}
+                                <span class="badge bg-success">正常</span>
+                                {% else %}
+                                <span class="badge bg-danger">禁用</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>密码管理：</th>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <!-- 重置密码按钮 -->
+                                    <form action="{{ url_for('admin.reset_password', user_id=user.id) }}" 
+                                          method="POST" style="display:inline;">
+                                        <button type="submit" 
+                                                class="btn btn-sm btn-warning" 
+                                                title="生成随机密码"
+                                                onclick="return confirm('确定要重置该用户的密码吗？将生成随机 8 位密码')">
+                                            <i class="fas fa-key"></i> 生成随机密码
+                                        </button>
+                                    </form>
+                                    
+                                    <!-- 设置密码按钮 -->
+                                    <button type="button" 
+                                            class="btn btn-sm btn-info text-white" 
+                                            title="设置指定密码"
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#setPasswordModal">
+                                        <i class="fas fa-edit"></i> 设置密码
+                                    </button>
+                                </div>
+                                <small class="form-text text-muted d-block mt-1">
+                                    <i class="fas fa-info-circle"></i> 为安全起见，密码加密存储，无法直接查看
+                                </small>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 时间信息卡片 -->
+            <div class="card mt-3 bg-light">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-clock"></i> 时间信息</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <th width="40%">最后登录：</th>
+                            <td>{{ user.last_login.strftime('%Y-%m-%d %H:%M:%S') if user.last_login else '从未登录' }}</td>
+                        </tr>
+                        <tr>
+                            <th>创建时间：</th>
+                            <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        </tr>
+                        <tr>
+                            <th>更新时间：</th>
+                            <td>{{ user.updated_at.strftime('%Y-%m-%d %H:%M:%S') if user.updated_at else '-' }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 用户提交记录卡片 -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-file-alt"></i> 问卷提交记录</h5>
+                    <span class="badge bg-light text-dark">{{ submissions|length }} 条</span>
+                </div>
+                <div class="card-body">
+                    {% if submissions %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>提交时间</th>
+                                    <th>总分</th>
+                                    <th>风险等级</th>
+                                    <th>认知</th>
+                                    <th>行为</th>
+                                    <th>经历</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for submission in submissions %}
+                                <tr>
+                                    <td>{{ submission.submitted_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <strong>{{ submission.final_score }}</strong>
+                                    </td>
+                                    <td>
+                                        {% if submission.risk_level == '低危' %}
+                                        <span class="badge bg-success">{{ submission.risk_level }}</span>
+                                        {% elif submission.risk_level == '中危' %}
+                                        <span class="badge bg-warning text-dark">{{ submission.risk_level }}</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">{{ submission.risk_level }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ submission.cognitive }}</td>
+                                    <td>{{ submission.behavior }}</td>
+                                    <td>{{ submission.experience }}</td>
+                                    <td>
+                                        {% if submission.is_valid %}
+                                        <span class="badge bg-success">有效</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">无效</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('admin.view_user', user_id=submission.user_id) }}" 
+                                           class="btn btn-sm btn-primary" title="查看详情">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info" role="alert">
+                        <i class="fas fa-info-circle"></i> 该用户还没有提交过问卷
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 操作按钮组 -->
+            <div class="mt-3">
+                <div class="btn-group" role="group">
+                    <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" 
+                       class="btn btn-primary">
+                        <i class="fas fa-edit"></i> 编辑用户
+                    </a>
+                    
+                    {% if user.id != current_user.id %}
+                    <form action="{{ url_for('admin.toggle_user_status', user_id=user.id) }}" 
+                          method="POST" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        {% if user.is_active %}
+                        <button type="submit" class="btn btn-danger" 
+                                onclick="return confirm('确定要禁用该用户吗？')">
+                            <i class="fas fa-ban"></i> 禁用账户
+                        </button>
+                        {% else %}
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check"></i> 启用账户
+                        </button>
+                        {% endif %}
+                    </form>
+                    
+                    <form action="{{ url_for('admin.reset_password', user_id=user.id) }}" 
+                          method="POST" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <button type="submit" class="btn btn-warning" 
+                                onclick="return confirm('确定要重置该用户的密码吗？将生成随机 8 位密码')">
+                            <i class="fas fa-key"></i> 重置密码
+                        </button>
+                    </form>
+                    
+                    <form action="{{ url_for('admin.delete_user', user_id=user.id) }}" 
+                          method="POST" style="display:inline;" 
+                          onsubmit="return confirm('确定要删除该用户吗？此操作不可恢复！');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <button type="submit" class="btn btn-dark">
+                            <i class="fas fa-trash"></i> 删除用户
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 设置密码模态框 -->
+<div class="modal fade" id="setPasswordModal" tabindex="-1" aria-labelledby="setPasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="setPasswordModalLabel">
+                    <i class="fas fa-edit"></i> 为用户 {{ user.student_id }} 设置密码
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('admin.set_user_password', user_id=user.id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="set_password" class="form-label">新密码 <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="set_password" name="set_password" 
+                               required minlength="6" placeholder="请输入至少 6 位密码">
+                        <small class="form-text text-muted">
+                            <i class="fas fa-info-circle"></i> 密码长度至少 6 位，建议使用强密码
+                        </small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label">确认密码 <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" 
+                               required minlength="6" placeholder="请再次输入密码">
+                        <small class="form-text text-muted">
+                            <i class="fas fa-exclamation-triangle"></i> 设置后请立即记录并告知用户
+                        </small>
+                    </div>
+                    <div class="alert alert-warning" role="alert">
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        <strong>注意：</strong>密码设置后将立即生效，用户需要使用新密码登录。
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check"></i> 确认设置
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

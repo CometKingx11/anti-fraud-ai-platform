@@ -96,33 +96,49 @@
                             </td>
                             <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
                             <td>
-                                <div class="btn-group btn-group-sm" role="group">
+                                <div class="btn-group" role="group">
+                                    <!-- 查看详情按钮 -->
+                                    <a href="{{ url_for('admin.view_user', user_id=user.id) }}" 
+                                       class="btn btn-sm btn-info text-white" 
+                                       title="查看详情">
+                                        <i class="fas fa-eye"></i> 详情
+                                    </a>
+                                    
                                     <!-- 编辑按钮 -->
                                     <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" 
-                                       class="btn btn-primary" title="编辑">
-                                        <i class="fas fa-edit"></i>
+                                       class="btn btn-sm btn-primary" 
+                                       title="编辑">
+                                        <i class="fas fa-edit"></i> 编辑
                                     </a>
                                     
                                     <!-- 重置密码按钮 -->
                                     <form action="{{ url_for('admin.reset_password', user_id=user.id) }}" 
                                           method="POST" style="display:inline;">
-                                        <button type="submit" class="btn btn-warning" 
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                        <button type="submit" 
+                                                class="btn btn-sm btn-warning" 
+                                                title="重置密码"
                                                 onclick="return confirm('确定要重置该用户的密码吗？将生成随机 8 位密码')">
-                                            <i class="fas fa-key"></i>
+                                            <i class="fas fa-key"></i> 密码
                                         </button>
                                     </form>
                                     
                                     <!-- 启用/禁用按钮 -->
                                     <form action="{{ url_for('admin.toggle_user_status', user_id=user.id) }}" 
                                           method="POST" style="display:inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                         {% if user.is_active %}
-                                        <button type="submit" class="btn btn-danger" 
+                                        <button type="submit" 
+                                                class="btn btn-sm btn-danger" 
+                                                title="禁用账户"
                                                 onclick="return confirm('确定要禁用该用户吗？')">
-                                            <i class="fas fa-ban"></i>
+                                            <i class="fas fa-ban"></i> 禁用
                                         </button>
                                         {% else %}
-                                        <button type="submit" class="btn btn-success">
-                                            <i class="fas fa-check"></i>
+                                        <button type="submit" 
+                                                class="btn btn-sm btn-success" 
+                                                title="启用账户">
+                                            <i class="fas fa-check"></i> 启用
                                         </button>
                                         {% endif %}
                                     </form>
@@ -131,8 +147,11 @@
                                     <form action="{{ url_for('admin.delete_user', user_id=user.id) }}" 
                                           method="POST" style="display:inline;" 
                                           onsubmit="return confirm('确定要删除该用户吗？此操作不可恢复！');">
-                                        <button type="submit" class="btn btn-dark" title="删除">
-                                            <i class="fas fa-trash"></i>
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                        <button type="submit" 
+                                                class="btn btn-sm btn-dark" 
+                                                title="删除">
+                                            <i class="fas fa-trash"></i> 删除
                                         </button>
                                     </form>
                                 </div>
