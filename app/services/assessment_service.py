@@ -161,7 +161,7 @@ class AssessmentService:
         # 将列表类型的字段转换为 JSON 字符串
         import json
         json_fields = ['risk_points', 'suggestions',
-                       'push_contents', 'uploaded_images']
+                       'push_contents', 'uploaded_images', 'url_risk_info']
         for field in json_fields:
             if field in assessment_data and isinstance(assessment_data[field], list):
                 assessment_data[field] = json.dumps(
