@@ -9,7 +9,7 @@
 from config.settings import Config
 from flask_migrate import Migrate
 from flask_login import LoginManager
-from flask import Flask
+from flask import Flask, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 
@@ -24,13 +24,13 @@ csrf = CSRFProtect()
 def create_app(config_class=Config):
     """
     应用工厂函数
-    创建并配置Flask应用实例
+    创建并配置 Flask 应用实例
 
     Args:
-        config_class: 配置类，默认为Config
+        config_class: 配置类，默认为 Config
 
     Returns:
-        Flask: 配置好的Flask应用实例
+        Flask: 配置好的 Flask 应用实例
     """
     app = Flask(__name__)
     app.config.from_object(config_class)
@@ -40,6 +40,13 @@ def create_app(config_class=Config):
     login_manager.init_app(app)
     migrate.init_app(app, db)
     csrf.init_app(app)
+
+    # 注入 csrf_token 到模板上下文
+    @app.context_processor
+    def inject_csrf_token():
+        from flask_wtf.csrf import generate_csrf
+        # 使用 lambda 包装，确保在模板中调用时生成 token
+        return dict(csrf_token=lambda: generate_csrf())
 
     # 设置登录管理器配置
     login_manager.login_view = 'auth.login'
@@ -54,6 +61,12 @@ def create_app(config_class=Config):
 
     # 注册蓝图
     register_blueprints(app)
+    
+    # 注册根路径路由
+    @app.route('/')
+    def index():
+        """根路径重定向到登录页面"""
+        return redirect(url_for('auth.login'))
 
     # 创建数据库表
     with app.app_context():

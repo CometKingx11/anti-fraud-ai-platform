@@ -45,6 +45,23 @@ def users():
     return render_template('admin/users.html', users=users)
 
 
+@admin_bp.route('/users/<int:user_id>')
+@login_required
+@role_required('admin')
+def view_user(user_id):
+    """
+    查看用户详情
+    """
+    user = User.query.get_or_404(user_id)
+    
+    # 获取该用户的所有提交记录
+    submissions = Submission.query.filter_by(
+        user_id=user_id
+    ).order_by(Submission.submitted_at.desc()).all()
+    
+    return render_template('admin/user_detail.html', user=user, submissions=submissions)
+
+
 @admin_bp.route('/users/create', methods=['GET', 'POST'])
 @login_required
 @role_required('admin')
@@ -111,7 +128,9 @@ def edit_user(user_id):
         email = request.form.get('email', '').strip()
         role = request.form.get('role', 'student')
         is_active = request.form.get('is_active') == 'on'
-        new_password = request.form.get('new_password', '')
+        # 兼容 password 和 new_password 字段
+        new_password = request.form.get('new_password', '') or request.form.get('password', '')
+        new_password = new_password.strip() if new_password else ''
 
         try:
             # 准备更新数据
@@ -122,7 +141,7 @@ def edit_user(user_id):
                 'is_active': is_active
             }
 
-            # 如果要重置密码
+            # 如果要重置密码（编辑模式下使用 new_password 字段）
             if new_password and len(new_password) >= 6:
                 update_data['password'] = new_password
 
@@ -151,6 +170,11 @@ def delete_user(user_id):
         return redirect(url_for('admin.users'))
 
     try:
+        # 先删除该用户的所有提交记录（避免外键约束错误）
+        submissions = Submission.query.filter_by(user_id=user_id).all()
+        for submission in submissions:
+            db.session.delete(submission)
+        
         # 删除用户
         User.delete_user(user_id)
         flash(f'用户 {user.student_id} 已删除', 'success')
@@ -175,20 +199,55 @@ def reset_password(user_id):
         return redirect(url_for('admin.users'))
 
     try:
-        # 生成随机密码
-        import random
-        import string
-        new_password = ''.join(random.choices(
-            string.ascii_letters + string.digits, k=8))
+        # 设置固定密码
+        new_password = '12345678'
 
         # 重置密码
         User.reset_password(user.student_id, new_password)
 
-        flash(f'用户 {user.student_id} 密码已重置为新密码：{new_password}', 'info')
+        flash(f'用户 {user.student_id} 密码已重置为：{new_password}', 'info')
     except Exception as e:
         flash(f'重置失败：{str(e)}', 'danger')
 
     return redirect(url_for('admin.users'))
+
+
+@admin_bp.route('/users/<int:user_id>/set-password', methods=['POST'])
+@login_required
+@role_required('admin')
+def set_user_password(user_id):
+    """
+    为用户设置指定密码
+    """
+    user = User.query.get_or_404(user_id)
+
+    # 不能设置自己的密码
+    if user.id == current_user.id:
+        flash('请通过个人中心修改密码', 'warning')
+        return redirect(url_for('admin.users'))
+
+    # 获取表单数据
+    new_password = request.form.get('set_password', '').strip()
+    confirm_password = request.form.get('confirm_password', '').strip()
+
+    # 验证密码
+    if not new_password or len(new_password) < 6:
+        flash('密码长度至少为 6 位', 'danger')
+        return redirect(url_for('admin.view_user', user_id=user.id))
+
+    if new_password != confirm_password:
+        flash('两次输入的密码不一致', 'danger')
+        return redirect(url_for('admin.view_user', user_id=user.id))
+
+    try:
+        # 设置新密码
+        User.reset_password(user.student_id, new_password)
+
+        flash(f'用户 {user.student_id} 密码已设置为：{new_password}', 'success')
+    except Exception as e:
+        flash(f'设置失败：{str(e)}', 'danger')
+
+    return redirect(url_for('admin.view_user', user_id=user.id))
 
 
 @admin_bp.route('/users/import', methods=['GET', 'POST'])

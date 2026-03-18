@@ -15,6 +15,45 @@ import json
 report_bp = Blueprint('report', __name__, url_prefix='/report')
 
 
+@report_bp.route('/api/chart-data')
+@login_required
+def chart_data():
+    """
+    ECharts 图表数据 API
+    返回可视化所需的原始数据
+    """
+    if 'assessment' not in session:
+        from app.models.submission import Submission
+        recent_submission = Submission.query.filter_by(
+            user_id=current_user.id
+        ).order_by(Submission.submitted_at.desc()).first()
+        
+        if recent_submission:
+            assessment_data = recent_submission.to_dict()
+        else:
+            return json.dumps({'error': '无评估数据'}), 404
+    else:
+        assessment_data = session['assessment'].copy()
+    
+    # 准备图表数据
+    # 注意：assessment_data 中的 JSON 字段可能已经是字符串格式，不需要再次转换
+    chart_data = {
+        'scores': {
+            'cognitive': assessment_data.get('cognitive', 0) or 0,
+            'behavior': assessment_data.get('behavior', 0) or 0,
+            'experience': assessment_data.get('experience', 0) or 0
+        },
+        'base_score': assessment_data.get('base_score', 0) or 0,
+        'url_risk_score': assessment_data.get('url_risk_score', 0) or 0,
+        'final_score': assessment_data.get('final_score', 0) or 0,
+        'risk_level': assessment_data.get('risk_level', '未知'),
+        'risk_points': assessment_data.get('risk_points', []),
+        'url_risk_info': assessment_data.get('url_risk_info', [])
+    }
+    
+    return json.dumps(chart_data, ensure_ascii=False)
+
+
 @report_bp.route('/')
 @login_required
 @validate_submission_ownership
