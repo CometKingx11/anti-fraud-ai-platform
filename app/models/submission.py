@@ -33,6 +33,8 @@ class Submission(db.Model):
     suggestions = db.Column(db.Text)    # 建议列表 (JSON 格式)
     push_contents = db.Column(db.Text)  # 推送内容列表 (JSON 格式)
     uploaded_images = db.Column(db.Text)  # 上传图片路径列表 (JSON 格式)
+    url_risk_info = db.Column(db.Text)  # URL 风险信息列表 (JSON 格式)
+    url_risk_score = db.Column(db.Integer, default=0)  # URL 风险加分
     ip_address = db.Column(db.String(50), nullable=True)  # 提交 IP 地址
     submission_hash = db.Column(
         db.String(64), nullable=True, index=True)  # 数据完整性校验
@@ -66,6 +68,8 @@ class Submission(db.Model):
             'suggestions': self.parse_json_field(self.suggestions),
             'push_contents': self.parse_json_field(self.push_contents),
             'uploaded_images': self.parse_json_field(self.uploaded_images),
+            'url_risk_info': self.parse_json_field(self.url_risk_info),
+            'url_risk_score': self.url_risk_score,
             'submitted_at': self.submitted_at.isoformat() if self.submitted_at else None
         }
 
@@ -143,7 +147,7 @@ class Submission(db.Model):
         """
         # 将列表转换为 JSON 字符串
         json_fields = ['risk_points', 'suggestions',
-                       'push_contents', 'uploaded_images']
+                       'push_contents', 'uploaded_images', 'url_risk_info']
         for field in json_fields:
             if field in data and isinstance(data[field], list):
                 data[field] = json.dumps(data[field], ensure_ascii=False)
