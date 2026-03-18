@@ -13,10 +13,17 @@ load_dotenv()
 class Config:
     """基础配置类"""
 
-    # 应用密钥 - 优先从环境变量获取，否则生成随机密钥
-    SECRET_KEY = os.environ.get('SECRET_KEY') or secrets.token_hex(16)
-
-    # 数据库配置
+    # 安全配置
+    SECRET_KEY = os.environ.get('SECRET_KEY') or secrets.token_hex(32)  # 增加到 32 字节
+    WTF_CSRF_ENABLED = True  # 启用 CSRF 保护
+    WTF_CSRF_TIME_LIMIT = 3600  # CSRF token 有效期 1 小时
+    WTF_CSRF_SSL_STRICT = False  # 开发环境允许非 HTTPS
+    
+    # 会话安全配置
+    SESSION_COOKIE_SECURE = True  # 生产环境必须使用 HTTPS
+    SESSION_COOKIE_HTTPONLY = True  # 防止 XSS 攻击
+    SESSION_COOKIE_SAMESITE = 'Lax'  # 防止 CSRF
+    PERMANENT_SESSION_LIFETIME = 3600  # 会话有效期 1 小时
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         'DATABASE_URL') or 'sqlite:///anti_fraud.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False

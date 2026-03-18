@@ -52,7 +52,20 @@ def login():
 
                 next_page = request.args.get('next')
                 flash('登录成功', 'success')
-                return redirect(next_page) if next_page else redirect(url_for('questionnaire.index'))
+                
+                # 根据角色跳转到对应首页
+                if user.role == 'admin':
+                    # 管理员始终跳转到仪表板，忽略 next 参数
+                    return redirect(url_for('admin.dashboard'))
+                elif user.role == 'teacher':
+                    # 教师跳转到问卷首页
+                    return redirect(url_for('questionnaire.index'))
+                else:
+                    # 如果有指定的下一页且是学生用户，则跳转过去
+                    if next_page:
+                        return redirect(next_page)
+                    # 否则跳转到问卷首页
+                    return redirect(url_for('questionnaire.index'))
             else:
                 flash('学号或密码错误', 'danger')
         else:

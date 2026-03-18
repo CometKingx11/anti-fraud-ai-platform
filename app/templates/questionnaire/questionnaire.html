@@ -9,6 +9,7 @@
 </p>
 
 <form method="post" action="{{ url_for('questionnaire.submit') }}" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     <!-- 测试专用：自动填充按钮 -->
     <div class="text-center mb-4">
         <button type="button" id="autoFillBtn" class="btn btn-warning btn-lg">

@@ -19,6 +19,7 @@
             </div>
             <div class="card-body p-4">
                 <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="mb-3">
                         <label class="form-label">学号</label>
                         <input type="text" name="student_id" class="form-control" required autofocus>
@@ -31,7 +32,7 @@
                 </form>
             </div>
             <div class="card-footer text-center text-muted">
-                管理员账号：admin / admin123<br>
+                管理员账号：12345678 / admin123<br>
                 学生账号请联系管理员开通
             </div>
         </div>

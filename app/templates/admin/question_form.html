@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}{% if action == 'create' %}创建题目{% else %}编辑题目{% endif %} - 管理员{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        {% if action == 'create' %}
+                            <i class="bi bi-plus-circle"></i> 添加新题目
+                        {% else %}
+                            <i class="bi bi-pencil"></i> 编辑题目 #{{ question.question_number }}
+                        {% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        <div class="row">
+                            <!-- 基本信息 -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="question_number" class="form-label">题号 <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="question_number" name="question_number" 
+                                           value="{{ question.question_number if question else '' }}" required min="1">
+                                    <small class="form-text text-muted">如：1, 2, 3...</small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="category" class="form-label">分类 <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="category" name="category" required>
+                                        <option value="">请选择</option>
+                                        <option value="cognitive" {% if question and question.category == 'cognitive' %}selected{% endif %}>认知维度</option>
+                                        <option value="behavior" {% if question and question.category == 'behavior' %}selected{% endif %}>行为维度</option>
+                                        <option value="experience" {% if question and question.category == 'experience' %}selected{% endif %}>经历维度</option>
+                                        <option value="open" {% if question and question.category == 'open' %}selected{% endif %}>开放题</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="dimension" class="form-label">所属维度</label>
+                            <select class="form-select" id="dimension" name="dimension">
+                                <option value="">无</option>
+                                <option value="cognitive" {% if question and question.dimension == 'cognitive' %}selected{% endif %}>认知</option>
+                                <option value="behavior" {% if question and question.dimension == 'behavior' %}selected{% endif %}>行为</option>
+                                <option value="experience" {% if question and question.dimension == 'experience' %}selected{% endif %}>经历</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="question_text" class="form-label">题目内容 <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="question_text" name="question_text" 
+                                      rows="3" required>{{ question.question_text if question else '' }}</textarea>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="min_score" class="form-label">最小分值</label>
+                                    <input type="number" class="form-control" id="min_score" name="min_score" 
+                                           value="{{ question.min_score if question else 1 }}" min="0">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="max_score" class="form-label">最大分值</label>
+                                    <input type="number" class="form-control" id="max_score" name="max_score" 
+                                           value="{{ question.max_score if question else 5 }}" max="10">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="weight" class="form-label">权重系数</label>
+                                    <input type="number" class="form-control" id="weight" name="weight" 
+                                           value="{{ question.weight if question else 1.0 }}" step="0.1" min="0.1">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="options_json" class="form-label">选项配置（JSON 格式）</label>
+                            <textarea class="form-control" id="options_json" name="options_json" 
+                                      rows="3">{{ '{"1":"完全不符合","2":"不太符合","3":"一般","4":"比较符合","5":"非常符合"}' if not question and question is none else (question.options_json or '') }}</textarea>
+                            <small class="form-text text-muted">格式示例：{"1":"选项 1 文本","2":"选项 2 文本",...}</small>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="display_order" class="form-label">显示顺序</label>
+                                    <input type="number" class="form-control" id="display_order" name="display_order" 
+                                           value="{{ question.display_order if question else 0 }}">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="is_active" name="is_active" 
+                                           {% if not question or question.is_active %}checked{% endif %}>
+                                    <label class="form-check-label" for="is_active">启用此题目</label>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="is_required" name="is_required" 
+                                           {% if not question or question.is_required %}checked{% endif %}>
+                                    <label class="form-check-label" for="is_required">必答</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                {% if action == 'create' %}
+                                    <i class="bi bi-check-circle"></i> 创建题目
+                                {% else %}
+                                    <i class="bi bi-save"></i> 保存更改
+                                {% endif %}
+                            </button>
+                            <a href="{{ url_for('questionnaire_mgmt.question_list') }}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> 返回列表
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

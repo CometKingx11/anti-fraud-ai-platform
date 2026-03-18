@@ -9,7 +9,9 @@
 from datetime import datetime
 from app.models.submission import Submission
 from app.models.user import User
+from app.models.questionnaire import QuestionnaireQuestion
 from app.services.ai_analysis_service import AIAnalysisService
+from app.services.url_security_service import URLSecurityService
 from app import db
 
 
@@ -22,31 +24,49 @@ class AssessmentService:
     @staticmethod
     def calculate_scores(answers):
         """
-        根据问卷答案计算各维度分数
-
+        根据问卷答案计算各维度分数（使用数据库配置的题目）
+            
         Args:
             answers (dict): 问卷答案字典，格式为{'q1': 3, 'q2': 5, ...}
-
+            
         Returns:
             dict: 包含各维度分数的字典
         """
-        # 认知维度：题目1-10，分数越高越安全
-        cognitive_score = sum(answers.get(f'q{i}', 0) for i in range(1, 11))
-        cognitive_score = min(cognitive_score, 50)  # 最大值限制为50
-
-        # 行为风险维度：题目11-20，分数越高风险越大
-        behavior_risk = sum(6 - answers.get(f'q{i}', 0) for i in range(11, 21))
-
-        # 经历维度：题目21-28，分数越高风险越大
-        experience_score = sum(answers.get(f'q{i}', 0) for i in range(21, 29))
-
-        # 计算基础总分（满分100）
+        # 从数据库获取题目配置
+        cognitive_questions = QuestionnaireQuestion.get_active_questions('cognitive')
+        behavior_questions = QuestionnaireQuestion.get_active_questions('behavior')
+        experience_questions = QuestionnaireQuestion.get_active_questions('experience')
+            
+        # 认知维度：正向计分
+        cognitive_score = 0
+        for q in cognitive_questions:
+            answer_key = f'q{q.question_number}'
+            if answer_key in answers:
+                cognitive_score += int(answers[answer_key]) * q.weight
+            
+        # 行为风险维度：反向计分（分数越高风险越大）
+        behavior_risk = 0
+        for q in behavior_questions:
+            answer_key = f'q{q.question_number}'
+            if answer_key in answers:
+                # 反向计分
+                score = (q.max_score + q.min_score + 1) - int(answers[answer_key])
+                behavior_risk += score * q.weight
+            
+        # 经历维度：正向计分
+        experience_score = 0
+        for q in experience_questions:
+            answer_key = f'q{q.question_number}'
+            if answer_key in answers:
+                experience_score += int(answers[answer_key]) * q.weight
+            
+        # 计算基础总分（满分 100）
         base_score = round(
             (cognitive_score / 50.0) * 40 +
             (behavior_risk / 50.0) * 40 +
             (experience_score / 40.0) * 20
         )
-
+            
         return {
             'cognitive': round((cognitive_score / 50.0) * 40),
             'behavior': round((behavior_risk / 50.0) * 40),
@@ -78,36 +98,50 @@ class AssessmentService:
     def process_questionnaire_submission(user_id, answers, open_texts, uploaded_images, ip_address=None):
         """
         处理问卷提交
-
+            
         Args:
             user_id (int): 用户 ID
             answers (dict): 问卷答案
             open_texts (dict): 开放性问题文本
             uploaded_images (list): 上传的图片路径列表
             ip_address (str): 用户 IP 地址
-
+            
         Returns:
             dict: 评估结果
         """
-        # 计算各维度分数
+        # 计算各维度分数（使用数据库配置）
         scores = AssessmentService.calculate_scores(answers)
-
+            
         # 合并开放性文本
         open_text = "\n".join(filter(None, [
             open_texts.get('open1', '').strip(),
             open_texts.get('open2', '').strip()
         ]))
-
+            
+        # 【新增】检测开放文本中的 URL
+        urls = URLSecurityService.extract_urls_from_text(open_text)
+        url_risk_info = []
+        url_risk_score = 0
+            
+        if urls:
+            # 批量检测 URL
+            url_results = URLSecurityService.batch_check_urls(urls, open_text)
+            url_risk_info = [r for r in url_results if r.get('is_risk', False)]
+            # 计算 URL 风险加分
+            url_risk_score = URLSecurityService.calculate_risk_score(url_results)
+            
         # 构建基础评估数据
         assessment_data = {
             'user_id': user_id,
-            'base_score': scores['base_score'],
+            'base_score': scores['base_score'] + url_risk_score,  # 加上 URL 风险分
             'cognitive': scores['cognitive'],
             'behavior': scores['behavior'],
             'experience': scores['experience'],
             'open_text': open_text,
             'uploaded_images': uploaded_images,
-            'ip_address': ip_address
+            'ip_address': ip_address,
+            'url_risk_info': url_risk_info,  # URL 风险信息
+            'url_risk_score': url_risk_score  # URL 风险加分
         }
 
         # 使用AI进行进一步分析

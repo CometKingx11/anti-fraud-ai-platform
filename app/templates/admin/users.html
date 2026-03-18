@@ -46,8 +46,11 @@
 
     <!-- 用户表格 -->
     <div class="card">
-        <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
             <h5><i class="fas fa-table"></i> 用户列表</h5>
+            <a href="{{ url_for('admin.create_user') }}" class="btn btn-success btn-sm">
+                <i class="fas fa-user-plus"></i> 创建新用户
+            </a>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -57,6 +60,7 @@
                             <th>ID</th>
                             <th>学号</th>
                             <th>姓名</th>
+                            <th>邮箱</th>
                             <th>角色</th>
                             <th>状态</th>
                             <th>最后登录</th>
@@ -70,20 +74,21 @@
                             <td>{{ user.id }}</td>
                             <td>{{ user.student_id }}</td>
                             <td>{{ user.name or '-' }}</td>
+                            <td>{{ user.email or '-' }}</td>
                             <td>
                                 {% if user.role == 'admin' %}
-                                <span class="badge badge-danger">管理员</span>
+                                <span class="badge bg-danger">管理员</span>
                                 {% elif user.role == 'teacher' %}
-                                <span class="badge badge-info">教师</span>
+                                <span class="badge bg-info text-white">教师</span>
                                 {% else %}
-                                <span class="badge badge-secondary">学生</span>
+                                <span class="badge bg-secondary">学生</span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if user.is_active %}
-                                <span class="badge badge-success">正常</span>
+                                <span class="badge bg-success">正常</span>
                                 {% else %}
-                                <span class="badge badge-danger">禁用</span>
+                                <span class="badge bg-danger">禁用</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -91,19 +96,46 @@
                             </td>
                             <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
                             <td>
-                                <form action="{{ url_for('admin.toggle_user_status', user_id=user.id) }}" method="POST"
-                                    style="display:inline;">
-                                    {% if user.is_active %}
-                                    <button type="submit" class="btn btn-sm btn-danger"
-                                        onclick="return confirm('确定要禁用该用户吗？')">
-                                        <i class="fas fa-ban"></i> 禁用
-                                    </button>
-                                    {% else %}
-                                    <button type="submit" class="btn btn-sm btn-success">
-                                        <i class="fas fa-check"></i> 启用
-                                    </button>
-                                    {% endif %}
-                                </form>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <!-- 编辑按钮 -->
+                                    <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" 
+                                       class="btn btn-primary" title="编辑">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    
+                                    <!-- 重置密码按钮 -->
+                                    <form action="{{ url_for('admin.reset_password', user_id=user.id) }}" 
+                                          method="POST" style="display:inline;">
+                                        <button type="submit" class="btn btn-warning" 
+                                                onclick="return confirm('确定要重置该用户的密码吗？将生成随机 8 位密码')">
+                                            <i class="fas fa-key"></i>
+                                        </button>
+                                    </form>
+                                    
+                                    <!-- 启用/禁用按钮 -->
+                                    <form action="{{ url_for('admin.toggle_user_status', user_id=user.id) }}" 
+                                          method="POST" style="display:inline;">
+                                        {% if user.is_active %}
+                                        <button type="submit" class="btn btn-danger" 
+                                                onclick="return confirm('确定要禁用该用户吗？')">
+                                            <i class="fas fa-ban"></i>
+                                        </button>
+                                        {% else %}
+                                        <button type="submit" class="btn btn-success">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        {% endif %}
+                                    </form>
+                                    
+                                    <!-- 删除按钮 -->
+                                    <form action="{{ url_for('admin.delete_user', user_id=user.id) }}" 
+                                          method="POST" style="display:inline;" 
+                                          onsubmit="return confirm('确定要删除该用户吗？此操作不可恢复！');">
+                                        <button type="submit" class="btn btn-dark" title="删除">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -116,6 +148,9 @@
     <div class="mt-3">
         <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> 返回仪表板
+        </a>
+        <a href="{{ url_for('admin.import_users') }}" class="btn btn-info text-white">
+            <i class="fas fa-file-import"></i> 批量导入
         </a>
         <a href="{{ url_for('admin.export') }}" class="btn btn-primary">
             <i class="fas fa-download"></i> 导出数据

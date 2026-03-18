@@ -103,13 +103,13 @@ class User(UserMixin, db.Model):
     def create_user(cls, student_id, password, role='student', name=None):
         """
         创建新用户
-
+    
         Args:
             student_id (str): 学号
             password (str): 明文密码
             role (str): 用户角色，默认为'student'
-            name (str): 用户姓名，默认为None
-
+            name (str): 用户姓名，默认为 None
+    
         Returns:
             User: 新创建的用户对象
         """
@@ -122,3 +122,71 @@ class User(UserMixin, db.Model):
         db.session.add(user)
         db.session.commit()
         return user
+    
+    @classmethod
+    def update_user(cls, user_id, **kwargs):
+        """
+        更新用户信息
+    
+        Args:
+            user_id (int): 用户 ID
+            **kwargs: 要更新的字段
+    
+        Returns:
+            User: 更新后的用户对象，失败返回 None
+        """
+        user = cls.query.get(user_id)
+        if not user:
+            return None
+    
+        # 允许更新的字段
+        allowed_fields = ['name', 'email', 'role', 'is_active']
+        for field in allowed_fields:
+            if field in kwargs:
+                setattr(user, field, kwargs[field])
+    
+        # 如果更新了密码
+        if 'password' in kwargs and kwargs['password']:
+            user.set_password(kwargs['password'])
+    
+        db.session.commit()
+        return user
+    
+    @classmethod
+    def delete_user(cls, user_id):
+        """
+        删除用户
+    
+        Args:
+            user_id (int): 用户 ID
+    
+        Returns:
+            bool: 是否删除成功
+        """
+        user = cls.query.get(user_id)
+        if not user:
+            return False
+    
+        db.session.delete(user)
+        db.session.commit()
+        return True
+    
+    @classmethod
+    def reset_password(cls, student_id, new_password):
+        """
+        重置用户密码
+    
+        Args:
+            student_id (str): 学号
+            new_password (str): 新密码
+    
+        Returns:
+            bool: 是否重置成功
+        """
+        user = cls.get_by_student_id(student_id)
+        if not user:
+            return False
+    
+        user.set_password(new_password)
+        db.session.commit()
+        return True

@@ -11,12 +11,14 @@ from flask_migrate import Migrate
 from flask_login import LoginManager
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from flask_wtf.csrf import CSRFProtect
 
 
 # 初始化扩展组件
 db = SQLAlchemy()
 login_manager = LoginManager()
 migrate = Migrate()
+csrf = CSRFProtect()
 
 
 def create_app(config_class=Config):
@@ -37,6 +39,7 @@ def create_app(config_class=Config):
     db.init_app(app)
     login_manager.init_app(app)
     migrate.init_app(app, db)
+    csrf.init_app(app)
 
     # 设置登录管理器配置
     login_manager.login_view = 'auth.login'
@@ -65,14 +68,16 @@ def register_blueprints(app):
     将不同功能模块的视图注册到应用中
 
     Args:
-        app: Flask应用实例
+        app: Flask 应用实例
     """
     from app.views.auth_views import auth_bp
     from app.views.questionnaire_views import questionnaire_bp
     from app.views.report_views import report_bp
     from app.views.admin_views import admin_bp
+    from app.views.questionnaire_mgmt_views import questionnaire_mgmt_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(questionnaire_bp)
     app.register_blueprint(report_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(questionnaire_mgmt_bp)

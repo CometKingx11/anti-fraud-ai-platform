@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}{% if action == 'create' %}创建用户{% else %}编辑用户{% endif %} - 管理员{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        {% if action == 'create' %}
+                            <i class="bi bi-person-plus"></i> 创建新用户
+                        {% else %}
+                            <i class="bi bi-person-edit"></i> 编辑用户 {{ user.student_id }}
+                        {% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <!-- 学号（只在创建时显示，编辑时不可修改） -->
+                        {% if action == 'create' %}
+                        <div class="mb-3">
+                            <label for="student_id" class="form-label">学号 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="student_id" name="student_id" 
+                                   placeholder="请输入 8-12 位数字学号" required maxlength="12">
+                            <small class="form-text text-muted">学号应为 8-12 位数字</small>
+                        </div>
+                        {% endif %}
+
+                        <!-- 姓名 -->
+                        <div class="mb-3">
+                            <label for="name" class="form-label">姓名</label>
+                            <input type="text" class="form-control" id="name" name="name" 
+                                   value="{{ user.name if user else '' }}" placeholder="请输入姓名">
+                        </div>
+
+                        <!-- 邮箱 -->
+                        <div class="mb-3">
+                            <label for="email" class="form-label">邮箱</label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   value="{{ user.email if user else '' }}" placeholder="请输入邮箱地址">
+                        </div>
+
+                        <!-- 角色选择 -->
+                        <div class="mb-3">
+                            <label for="role" class="form-label">角色 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="role" name="role" required>
+                                <option value="student" {% if user and user.role == 'student' %}selected{% endif %}>学生</option>
+                                <option value="teacher" {% if user and user.role == 'teacher' %}selected{% endif %}>教师</option>
+                                <option value="admin" {% if user and user.role == 'admin' %}selected{% endif %}>管理员</option>
+                            </select>
+                        </div>
+
+                        <!-- 密码（创建时必填，编辑时可选） -->
+                        <div class="mb-3">
+                            <label for="password" class="form-label">
+                                {% if action == 'create' %}
+                                    密码 <span class="text-danger">*</span>
+                                {% else %}
+                                    新密码（留空则不修改）
+                                {% endif %}
+                            </label>
+                            <input type="password" class="form-control" id="password" name="password" 
+                                   {% if action == 'create' %}required{% endif %} minlength="6" placeholder="至少 6 位">
+                            {% if action == 'edit' %}
+                            <small class="form-text text-muted">如需重置密码，请输入新密码；否则留空</small>
+                            {% endif %}
+                        </div>
+
+                        <!-- 启用状态（仅编辑模式） -->
+                        {% if action == 'edit' %}
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="is_active" name="is_active" 
+                                   {% if user and user.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="is_active">启用账户</label>
+                            <small class="form-text text-muted d-block">取消勾选将禁用该账户</small>
+                        </div>
+                        {% endif %}
+
+                        <!-- 提交按钮 -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                {% if action == 'create' %}
+                                    <i class="bi bi-check-circle"></i> 创建用户
+                                {% else %}
+                                    <i class="bi bi-save"></i> 保存更改
+                                {% endif %}
+                            </button>
+                            <a href="{{ url_for('admin.users') }}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> 返回列表
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

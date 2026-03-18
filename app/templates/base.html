@@ -28,28 +28,47 @@
             font-weight: bold;
         }
 
-            {
-            % block extra_styles %
-        }
-
-            {
-            % endblock %
-        }
+        {% block extra_styles %}{% endblock %}
     </style>
 </head>
 
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('questionnaire.index') }}">反诈评估平台</a>
-            <div class="navbar-nav ms-auto">
-                {% if current_user.is_authenticated %}
-                <span class="navbar-text me-3">欢迎，{{ current_user.student_id }}</span>
-                <a class="nav-link" href="{{ url_for('auth.logout') }}">退出</a>
-                {% else %}
-                <a class="nav-link" href="{{ url_for('auth.login') }}">登录</a>
-                {% endif %}
+            <a class="navbar-brand" href="{% if current_user.is_authenticated and current_user.role == 'admin' %}{{ url_for('admin.dashboard') }}{% else %}{{ url_for('questionnaire.index') }}{% endif %}">反诈评估平台</a>
+            
+            {% if current_user.is_authenticated %}
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    {% if current_user.role == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin.dashboard') }}">仪表板</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin.users') }}">用户管理</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin.export') }}">数据导出</a>
+                    </li>
+                    {% elif current_user.role == 'teacher' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('questionnaire.index') }}">问卷首页</a>
+                    </li>
+                    {% endif %}
+                </ul>
+                <div class="navbar-nav">
+                    <span class="navbar-text me-3">{{ current_user.name }} ({{ current_user.student_id }})</span>
+                    <a class="nav-link" href="{{ url_for('auth.logout') }}">退出</a>
+                </div>
             </div>
+            {% else %}
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('auth.login') }}">登录</a>
+            </div>
+            {% endif %}
         </div>
     </nav>
 

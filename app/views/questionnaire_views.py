@@ -29,7 +29,8 @@ def index():
 
 @questionnaire_bp.route('/submit', methods=['POST'])
 @login_required
-@prevent_duplicate_submission(hours=24)  # 防止 24 小时内重复提交
+# @prevent_duplicate_submission(hours=24)  # 防止 24 小时内重复提交
+@prevent_duplicate_submission(hours=0)    # 测试用,设置为 0 小时内不能重复提交
 def submit():
     """
     提交问卷
