@@ -62,10 +62,64 @@
         color: #155724;
         font-weight: bold;
     }
+    
+    /* 图表容器 */
+    .chart-container {
+        width: 100%;
+        height: 400px;
+        margin-bottom: 30px;
+    }
+    
+    /* 预警弹窗样式 */
+    .warning-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .warning-modal.show {
+        display: flex;
+    }
+    
+    .warning-content {
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        max-width: 600px;
+        text-align: center;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+    
+    .warning-icon {
+        font-size: 80px;
+        margin-bottom: 20px;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
+<!-- 预警弹窗 -->
+<div id="warningModal" class="warning-modal">
+    <div class="warning-content">
+        <div class="warning-icon">⚠️</div>
+        <h2 class="text-danger mb-3">高风险预警</h2>
+        <p class="lead mb-4">您的反诈风险等级较高，需要引起重视！</p>
+        <div class="alert alert-warning text-start mb-4">
+            <strong>主要风险点：</strong>
+            <ul id="warningRiskPoints" class="mb-0"></ul>
+        </div>
+        <p class="mb-4"><strong>建议：</strong>请立即学习反诈知识，提高防范意识，必要时可联系学校保卫处或辅导员。</p>
+        <button type="button" class="btn btn-primary" onclick="closeWarningModal()">我已了解，会提高警惕</button>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-header">
         <h3>您的反诈风险评估报告</h3>
@@ -103,6 +157,12 @@
             </div>
         </div>
 
+        <hr class="my-4">
+
+        <!-- ECharts 图表 -->
+        <h5 class="section-title">风险构成可视化</h5>
+        <div id="scoreChart" class="chart-container"></div>
+        
         <hr class="my-4">
 
         <!-- 维度得分 -->
@@ -199,8 +259,146 @@
             重新填写问卷
         </a>
         <a href="{{ url_for('report.export_pdf') }}" class="btn btn-lg btn-success">
-            导出PDF报告
+            导出 PDF 报告
         </a>
     </div>
 </div>
+
+<!-- ECharts 图表脚本 -->
+<script>
+// 加载图表数据
+fetch('/report/api/chart-data')
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            console.error('获取数据失败:', data.error);
+            return;
+        }
+        
+        // 创建柱状图
+        var chartDom = document.getElementById('scoreChart');
+        var myChart = echarts.init(chartDom);
+        var option;
+        
+        option = {
+            title: {
+                text: '各维度得分对比',
+                left: 'center',
+                textStyle: {
+                    fontSize: 16,
+                    color: '#333'
+                }
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                }
+            },
+            legend: {
+                data: ['您的得分'],
+                top: '10%'
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                data: ['认知\n(满分 40)', '行为\n(满分 40)', '经历\n(满分 20)'],
+                axisLabel: {
+                    fontSize: 12,
+                    color: '#666'
+                }
+            },
+            yAxis: {
+                type: 'value',
+                max: 100,
+                axisLabel: {
+                    formatter: '{value} 分'
+                },
+                splitLine: {
+                    lineStyle: {
+                        type: 'dashed'
+                    }
+                }
+            },
+            series: [
+                {
+                    name: '您的得分',
+                    type: 'bar',
+                    barWidth: '50%',
+                    data: [
+                        data.scores.cognitive,
+                        data.scores.behavior,
+                        data.scores.experience
+                    ],
+                    itemStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: '#0d6efd' },
+                            { offset: 1, color: '#0dcaf0' }
+                        ]),
+                        borderRadius: [5, 5, 0, 0]
+                    },
+                    label: {
+                        show: true,
+                        position: 'top',
+                        fontSize: 14,
+                        color: '#333'
+                    }
+                }
+            ]
+        };
+        
+        myChart.setOption(option);
+        
+        // 响应式调整
+        window.addEventListener('resize', function() {
+            myChart.resize();
+        });
+        
+        // 检查是否需要显示预警弹窗
+        checkWarning(data);
+    })
+    .catch(error => {
+        console.error('获取图表数据失败:', error);
+    });
+
+// 预警检查函数
+function checkWarning(data) {
+    const riskLevel = data.risk_level;
+    const isHighRisk = (riskLevel === '高风险' || riskLevel === '极高风险');
+    
+    if (isHighRisk) {
+        // 显示预警弹窗
+        const modal = document.getElementById('warningModal');
+        const riskPointsList = document.getElementById('warningRiskPoints');
+        
+        // 填充风险点
+        if (data.risk_points && data.risk_points.length > 0) {
+            riskPointsList.innerHTML = '';
+            data.risk_points.forEach(point => {
+                const li = document.createElement('li');
+                li.textContent = point;
+                riskPointsList.appendChild(li);
+            });
+        } else {
+            riskPointsList.innerHTML = '<li>综合风险评分较高</li>';
+        }
+        
+        // 延迟 1 秒后显示，让用户先看到报告
+        setTimeout(() => {
+            modal.classList.add('show');
+        }, 1000);
+    }
+}
+
+// 关闭预警弹窗
+function closeWarningModal() {
+    const modal = document.getElementById('warningModal');
+    modal.classList.remove('show');
+}
+</script>
 {% endblock %}
