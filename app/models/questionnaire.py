@@ -153,3 +153,21 @@ class QuestionnaireConfig(db.Model):
             db.session.add(config)
         db.session.commit()
         return config
+    
+    @classmethod
+    def get_int_config(cls, key: str, default: int = 0) -> int:
+        """获取整数配置值"""
+        value = cls.get_config(key, str(default))
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            return default
+    
+    @classmethod
+    def get_float_config(cls, key: str, default: float = 0.0) -> float:
+        """获取浮点数配置值"""
+        value = cls.get_config(key, str(default))
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return default

@@ -88,9 +88,11 @@ def register_blueprints(app):
     from app.views.report_views import report_bp
     from app.views.admin_views import admin_bp
     from app.views.questionnaire_mgmt_views import questionnaire_mgmt_bp
+    from app.views.scoring_rules_views import scoring_rules_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(questionnaire_bp)
     app.register_blueprint(report_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(questionnaire_mgmt_bp)
+    app.register_blueprint(scoring_rules_bp)

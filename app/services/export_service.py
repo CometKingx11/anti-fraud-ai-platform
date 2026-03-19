@@ -1,6 +1,6 @@
 """
 数据导出服务
-提供 CSV、Excel 格式的数据导出功能
+提供 CSV、Excel、AI 报告 格式的数据导出功能
 """
 
 import io
@@ -214,3 +214,106 @@ class ExportService:
             return f"反诈评估数据_{timestamp}.pdf"
         else:
             return f"export_{timestamp}.{format_type}"
+
+    @staticmethod
+    def export_ai_report_to_pdf(ai_report_content):
+        """
+        导出 AI 统计报告为 PDF 格式
+
+        Args:
+            ai_report_content: AI 生成的报告内容（字符串）
+
+        Returns:
+            BytesIO: PDF 文件流
+        """
+        from reportlab.lib.pagesizes import A4
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.pdfbase.ttfonts import TTFont
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT
+
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=50, rightMargin=50)
+        elements = []
+
+        # 注册中文字体
+        try:
+            pdfmetrics.registerFont(TTFont('SimSun', 'C:/Windows/Fonts/simsun.ttc'))
+            pdfmetrics.registerFont(TTFont('SimHei', 'C:/Windows/Fonts/simhei.ttf'))
+            font_song = 'SimSun'
+            font_hei = 'SimHei'
+        except:
+            font_song = 'Helvetica'
+            font_hei = 'Helvetica-Bold'
+
+        # 标题样式
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'Title',
+            parent=styles['Title'],
+            fontName=font_hei,
+            fontSize=18,
+            alignment=TA_CENTER,
+            spaceAfter=20
+        )
+
+        # 正文样式
+        normal_style = ParagraphStyle(
+            'Normal',
+            parent=styles['Normal'],
+            fontName=font_song,
+            fontSize=12,
+            alignment=TA_LEFT,
+            leading=20  # 行间距
+        )
+
+        # 添加标题
+        elements.append(Paragraph("大学生反诈风险评估统计分析报告", title_style))
+        elements.append(Spacer(1, 10))
+
+        # 添加生成时间
+        timestamp = datetime.now().strftime('%Y年%m月%d日 %H:%M')
+        time_paragraph = Paragraph(f"<b>报告生成时间：</b>{timestamp}", normal_style)
+        elements.append(time_paragraph)
+        elements.append(Spacer(1, 20))
+
+        # 分割报告内容为段落
+        # 假设 AI 报告使用换行符分隔段落
+        paragraphs = ai_report_content.split('\n')
+        
+        for para in paragraphs:
+            if para.strip():  # 跳过空行
+                # 处理标题（如果有的话）
+                if para.startswith('#'):
+                    heading_style = ParagraphStyle(
+                        'Heading',
+                        parent=styles['Heading1'],
+                        fontName=font_hei,
+                        fontSize=14,
+                        spaceBefore=15,
+                        spaceAfter=10
+                    )
+                    elements.append(Paragraph(para.replace('#', '').strip(), heading_style))
+                else:
+                    # 普通段落
+                    elements.append(Paragraph(para.strip(), normal_style))
+                elements.append(Spacer(1, 5))
+
+        # 添加页脚信息
+        elements.append(Spacer(1, 30))
+        footer_style = ParagraphStyle(
+            'Footer',
+            parent=styles['Normal'],
+            fontName=font_song,
+            fontSize=10,
+            alignment=TA_CENTER,
+            textColor='gray'
+        )
+        elements.append(Paragraph("── 报告结束 ──", footer_style))
+
+        # 生成 PDF
+        doc.build(elements)
+        buffer.seek(0)
+
+        return buffer

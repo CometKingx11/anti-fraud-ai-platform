@@ -68,11 +68,12 @@
                                     <!-- 重置密码按钮 -->
                                     <form action="{{ url_for('admin.reset_password', user_id=user.id) }}" 
                                           method="POST" style="display:inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                         <button type="submit" 
                                                 class="btn btn-sm btn-warning" 
-                                                title="生成随机密码"
-                                                onclick="return confirm('确定要重置该用户的密码吗？将生成随机 8 位密码')">
-                                            <i class="fas fa-key"></i> 生成随机密码
+                                                title="重置密码为 12345678"
+                                                onclick="return confirm('确定要重置该用户的密码吗？密码将重置为 12345678')">
+                                            <i class="fas fa-key"></i> 重置密码
                                         </button>
                                     </form>
                                     

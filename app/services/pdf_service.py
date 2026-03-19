@@ -1,7 +1,7 @@
-# Author: 小土豆233
+# Author: 小土豆 233
 # Date: 2026-03-16 23:42:18
 # LastEditTime: 2026-03-16 23:42:27
-# LastEditors: 小土豆233
+# LastEditors: 小土豆 233
 # Description: PDF 服务，处理评估报告的 PDF 导出功能
 # FilePath: flask_anti_project\app\services\pdf_service.py
 
@@ -25,15 +25,15 @@ class PDFService:
     @staticmethod
     def generate_report_pdf(assessment_data):
         """
-        生成评估报告PDF
-
+        生成评估报告 PDF
+    
         Args:
             assessment_data (dict): 评估数据
-
+    
         Returns:
-            BytesIO: PDF文件流
+            BytesIO: PDF 文件流
         """
-        # 创建PDF缓冲区
+        # 创建 PDF 缓冲区
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(
             buffer,
@@ -44,7 +44,7 @@ class PDFService:
             bottomMargin=72
         )
         elements = []
-
+    
         # 注册中文字体
         try:
             pdfmetrics.registerFont(
@@ -77,12 +77,12 @@ class PDFService:
         # 添加标题
         elements.append(Paragraph("大学生反诈风险评估报告", title_style))
         elements.append(Spacer(1, 24))
-
+        
         # 风险等级
         elements.append(
             Paragraph(f"风险等级：{assessment_data.get('risk_level', '未知')}", heading_style))
         elements.append(Spacer(1, 12))
-
+        
         # 分数信息
         elements.append(
             Paragraph(f"基础分：{assessment_data.get('base_score', 0)}/100", normal_style))
@@ -149,8 +149,8 @@ class PDFService:
         else:
             elements.append(Paragraph("暂无推荐推送内容", normal_style))
 
-        # 生成PDF
+        # 生成 PDF
         doc.build(elements)
         buffer.seek(0)
-
+        
         return buffer

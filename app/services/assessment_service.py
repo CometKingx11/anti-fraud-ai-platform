@@ -77,7 +77,7 @@ class AssessmentService:
     @staticmethod
     def determine_risk_level(score):
         """
-        根据分数确定风险等级
+        根据分数确定风险等级（使用配置的阈值）
 
         Args:
             score (int): 评估分数
@@ -85,11 +85,17 @@ class AssessmentService:
         Returns:
             str: 风险等级
         """
-        if score <= 30:
+        # 从配置中读取阈值，如果不存在则使用默认值
+        from app.models.questionnaire import QuestionnaireConfig
+        threshold_low = QuestionnaireConfig.get_int_config('threshold_low', 30)
+        threshold_mid = QuestionnaireConfig.get_int_config('threshold_mid', 55)
+        threshold_high = QuestionnaireConfig.get_int_config('threshold_high', 80)
+        
+        if score <= threshold_low:
             return "低风险"
-        elif score <= 55:
+        elif score <= threshold_mid:
             return "中风险"
-        elif score <= 80:
+        elif score <= threshold_high:
             return "高风险"
         else:
             return "极高风险"
@@ -117,19 +123,19 @@ class AssessmentService:
             open_texts.get('open1', '').strip(),
             open_texts.get('open2', '').strip()
         ]))
-            
+                    
         # 【新增】检测开放文本中的 URL
         urls = URLSecurityService.extract_urls_from_text(open_text)
         url_risk_info = []
         url_risk_score = 0
-            
+                    
         if urls:
             # 批量检测 URL
             url_results = URLSecurityService.batch_check_urls(urls, open_text)
             url_risk_info = [r for r in url_results if r.get('is_risk', False)]
             # 计算 URL 风险加分
             url_risk_score = URLSecurityService.calculate_risk_score(url_results)
-            
+                    
         # 构建基础评估数据
         assessment_data = {
             'user_id': user_id,
@@ -143,20 +149,35 @@ class AssessmentService:
             'url_risk_info': url_risk_info,  # URL 风险信息
             'url_risk_score': url_risk_score  # URL 风险加分
         }
-
-        # 使用AI进行进一步分析
-        ai_service = AIAnalysisService()
-        ai_result = ai_service.analyze_assessment(assessment_data)
-
-        # 整合 AI 分析结果
-        assessment_data.update({
-            'final_score': ai_result.get('final_score', scores['base_score']),
-            'risk_level': ai_result.get('risk_level', AssessmentService.determine_risk_level(scores['base_score'])),
-            'risk_points': ai_result.get('risk_points', []),
-            'analysis': ai_result.get('analysis', '暂无大模型分析结果'),
-            'suggestions': ai_result.get('suggestions', []),
-            'push_contents': ai_result.get('push_contents', [])
-        })
+        
+        # 【新增】检查是否启用 AI 智能分析
+        from app.models.questionnaire import QuestionnaireConfig
+        enable_ai_analysis = QuestionnaireConfig.get_config('enable_ai_analysis', '1') == '1'
+                
+        if enable_ai_analysis:
+            # 使用 AI 进行进一步分析
+            ai_service = AIAnalysisService()
+            ai_result = ai_service.analyze_assessment(assessment_data)
+                    
+            # 整合 AI 分析结果
+            assessment_data.update({
+                'final_score': ai_result.get('final_score', scores['base_score']),
+                'risk_level': ai_result.get('risk_level', AssessmentService.determine_risk_level(scores['base_score'])),
+                'risk_points': ai_result.get('risk_points', []),
+                'analysis': ai_result.get('analysis', '暂无大模型分析结果'),
+                'suggestions': ai_result.get('suggestions', []),
+                'push_contents': ai_result.get('push_contents', [])
+            })
+        else:
+            # AI 分析已禁用，使用基础规则评估
+            assessment_data.update({
+                'final_score': scores['base_score'] + url_risk_score,
+                'risk_level': AssessmentService.determine_risk_level(scores['base_score'] + url_risk_score),
+                'risk_points': [],  # 不提供风险点
+                'analysis': 'AI 智能分析已禁用，仅使用基础评分规则',
+                'suggestions': [],  # 不提供建议
+                'push_contents': []  # 不提供推送内容
+            })
 
         # 将列表类型的字段转换为 JSON 字符串
         import json

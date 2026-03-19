@@ -14,31 +14,117 @@
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <h5 class="card-title">总用户数</h5>
-                    <h2>{{ users|length }}</h2>
+                    <h2>{{ total_students + total_teachers + total_admins }}</h2>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="card bg-success text-white">
                 <div class="card-body">
-                    <h5 class="card-title">正常用户</h5>
-                    <h2>{{ users|selectattr('is_active')|list|length }}</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-danger text-white">
-                <div class="card-body">
-                    <h5 class="card-title">禁用用户</h5>
-                    <h2>{{ users|rejectattr('is_active')|list|length }}</h2>
+                    <h5 class="card-title">学生用户</h5>
+                    <h2>{{ total_students }}</h2>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="card bg-info text-white">
                 <div class="card-body">
+                    <h5 class="card-title">教师用户</h5>
+                    <h2>{{ total_teachers }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
                     <h5 class="card-title">管理员</h5>
-                    <h2>{{ users|selectattr('role', 'equalto', 'admin')|list|length }}</h2>
+                    <h2>{{ total_admins }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 角色筛选按钮 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('admin.users', role='all') }}" 
+                   class="btn btn-outline-secondary {{ 'active' if current_role == 'all' else '' }}">
+                    <i class="fas fa-users"></i> 全部用户
+                </a>
+                <a href="{{ url_for('admin.users', role='student') }}" 
+                   class="btn btn-outline-success {{ 'active' if current_role == 'student' else '' }}">
+                    <i class="fas fa-user-graduate"></i> 查看学生用户 ({{ total_students }})
+                </a>
+                <a href="{{ url_for('admin.users', role='teacher') }}" 
+                   class="btn btn-outline-info {{ 'active' if current_role == 'teacher' else '' }}">
+                    <i class="fas fa-chalkboard-teacher"></i> 查看教师用户 ({{ total_teachers }})
+                </a>
+                <a href="{{ url_for('admin.users', role='admin') }}" 
+                   class="btn btn-outline-danger {{ 'active' if current_role == 'admin' else '' }}">
+                    <i class="fas fa-user-shield"></i> 查看管理员 ({{ total_admins }})
+                </a>
+            </div>
+            {% if current_role != 'all' %}
+            <a href="{{ url_for('admin.users', role='all') }}" class="btn btn-sm btn-link ms-2">
+                <i class="fas fa-times"></i> 清除筛选
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 批量操作工具栏 -->
+    <div class="row mb-3" id="batchActions" style="display:none;">
+        <div class="col-12">
+            <div class="alert alert-warning mb-0">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <input type="checkbox" id="selectAll" class="me-2" style="width: 18px; height: 18px; cursor: pointer;">
+                        <label for="selectAll" style="font-size: 16px; font-weight: bold; cursor: pointer; margin: 0;">
+                            全选 / 取消全选
+                        </label>
+                        <span class="ms-3">已选择 <strong><span id="selectedCount">0</span></strong> 个用户</span>
+                        <span class="ms-2 text-muted">（不能删除管理员账户）</span>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="batchDelete()">
+                            <i class="fas fa-trash-alt"></i> 批量删除选中用户
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm ms-2" onclick="cancelSelection()">
+                            <i class="fas fa-times"></i> 取消选择
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 搜索框 -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body py-2">
+                    <form method="GET" action="{{ url_for('admin.users') }}" class="d-flex align-items-center">
+                        <input type="hidden" name="role" value="{{ current_role }}">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <input type="text" 
+                                   class="form-control" 
+                                   name="search" 
+                                   placeholder="搜索学生：输入学号或姓名..." 
+                                   value="{{ search_keyword }}">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i> 搜索
+                            </button>
+                            {% if search_keyword %}
+                            <a href="{{ url_for('admin.users', role=current_role) }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> 清除
+                            </a>
+                            {% endif %}
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -47,7 +133,18 @@
     <!-- 用户表格 -->
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5><i class="fas fa-table"></i> 用户列表</h5>
+            <h5>
+                <i class="fas fa-table"></i> 
+                {% if current_role == 'all' %}
+                    用户列表
+                {% elif current_role == 'student' %}
+                    学生用户列表
+                {% elif current_role == 'teacher' %}
+                    教师用户列表
+                {% elif current_role == 'admin' %}
+                    管理员列表
+                {% endif %}
+            </h5>
             <a href="{{ url_for('admin.create_user') }}" class="btn btn-success btn-sm">
                 <i class="fas fa-user-plus"></i> 创建新用户
             </a>
@@ -57,6 +154,14 @@
                 <table class="table table-striped table-hover" id="usersTable">
                     <thead>
                         <tr>
+                            <th width="60px" class="text-center" style="vertical-align: middle; min-width: 60px;">
+                                <div style="display: inline-block; white-space: nowrap; cursor: pointer;" title="点击全选/取消全选">
+                                    <input type="checkbox" id="selectAllHeader" 
+                                           style="width: 18px; height: 18px; cursor: pointer; margin: 0 3px;"
+                                           title="全选/取消全选">
+                                    <span style="font-weight: bold; margin-left: 3px;">全选</span>
+                                </div>
+                            </th>
                             <th>ID</th>
                             <th>学号</th>
                             <th>姓名</th>
@@ -71,6 +176,14 @@
                     <tbody>
                         {% for user in users %}
                         <tr>
+                            <td class="text-center">
+                                {% if user.role != 'admin' %}
+                                <input type="checkbox" class="user-checkbox" 
+                                       data-user-id="{{ user.id }}" 
+                                       data-student-id="{{ user.student_id }}"
+                                       style="width: 18px; height: 18px; cursor: pointer;">
+                                {% endif %}
+                            </td>
                             <td>{{ user.id }}</td>
                             <td>{{ user.student_id }}</td>
                             <td>{{ user.name or '-' }}</td>
@@ -164,6 +277,55 @@
         </div>
     </div>
 
+    <!-- 分页导航 -->
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            {% if pagination.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin.users', page=pagination.prev_num, role=current_role) }}" 
+                   aria-label="Previous">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+            </li>
+            {% endif %}
+
+            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if page_num %}
+                    {% if page_num == pagination.page %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_num }}</span>
+                    </li>
+                    {% else %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.users', page=page_num, role=current_role) }}">{{ page_num }}</a>
+                    </li>
+                    {% endif %}
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if pagination.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin.users', page=pagination.next_num, role=current_role) }}" 
+                   aria-label="Next">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+
     <div class="mt-3">
         <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> 返回仪表板
@@ -180,12 +342,130 @@
 
 {% block scripts %}
 <script>
-    // 添加表格搜索功能
+    // 更新选中数量显示
+    function updateSelectedCount() {
+        var checkedBoxes = $('.user-checkbox:checked');
+        var count = checkedBoxes.length;
+        
+        $('#selectedCount').text(count);
+        
+        // 显示/隐藏批量操作工具栏
+        var batchActions = $('#batchActions');
+        if (count > 0) {
+            batchActions.show();
+        } else {
+            batchActions.hide();
+        }
+
+        // 同步两个全选复选框的状态
+        var allCheckboxes = $('.user-checkbox');
+        var allChecked = (checkedBoxes.length === allCheckboxes.length && allCheckboxes.length > 0);
+        
+        $('#selectAllHeader').prop('checked', allChecked);
+        $('#selectAll').prop('checked', allChecked);
+    }
+
+    // 取消选择
+    function cancelSelection() {
+        $('.user-checkbox').prop('checked', false);
+        $('#selectAll').prop('checked', false);
+        $('#selectAllHeader').prop('checked', false);
+        updateSelectedCount();
+    }
+
+    // 批量删除
+    function batchDelete() {
+        var checkedBoxes = $('.user-checkbox:checked');
+        if (checkedBoxes.length === 0) {
+            alert('请至少选择一个用户');
+            return;
+        }
+
+        // 获取选中的用户 ID 和学号
+        var userIds = [];
+        var studentIds = [];
+        checkedBoxes.each(function() {
+            userIds.push($(this).data('user-id'));
+            studentIds.push($(this).data('student-id'));
+        });
+
+        // 确认删除提示
+        var confirmMsg = '确定要删除选中的 ' + userIds.length + ' 个用户吗？\n\n将被删除的用户：\n' + studentIds.join('\n') + '\n\n此操作不可恢复！';
+        
+        if (!confirm(confirmMsg)) {
+            return;
+        }
+
+        // 创建临时表单并提交
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/admin/users/batch-delete';
+        
+        // 添加 CSRF token
+        var csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = '{{ csrf_token() }}';
+        form.appendChild(csrfInput);
+        
+        // 添加用户 ID 列表
+        userIds.forEach(function(id) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'user_ids';
+            input.value = id;
+            form.appendChild(input);
+        });
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    // 初始化 DataTable
     $(document).ready(function () {
-        $('#usersTable').DataTable({
+        var table = $('#usersTable').DataTable({
             language: {
                 url: '//cdn.datatables.net/plug-ins/1.10.24/i18n/Chinese.json'
-            }
+            },
+            columnDefs: [{
+                orderable: false,
+                targets: [0, 9]  // 复选框列和操作列不可排序
+            }]
+        });
+        
+        // 页面加载时检查选中状态
+        updateSelectedCount();
+        
+        // 保存 table 引用以便后续使用
+        window.usersTable = table;
+        
+        // 监听学生复选框变化
+        $(document).on('change', '.user-checkbox', function() {
+            updateSelectedCount();
+        });
+        
+        // 全选/取消全选（表头复选框）
+        $('#selectAllHeader').on('change', function() {
+            var isChecked = $(this).is(':checked');
+            console.log('全选状态:', isChecked);
+            
+            // 设置所有学生复选框
+            $('.user-checkbox').prop('checked', isChecked);
+            
+            updateSelectedCount();
+        });
+        
+        // 全选/取消全选（批量工具栏复选框）
+        $('#selectAll').on('change', function() {
+            var isChecked = $(this).is(':checked');
+            
+            // 设置所有学生复选框
+            $('.user-checkbox').prop('checked', isChecked);
+            
+            // 同步表头复选框
+            $('#selectAllHeader').prop('checked', isChecked);
+            
+            updateSelectedCount();
         });
     });
 </script>

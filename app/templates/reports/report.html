@@ -101,6 +101,34 @@
         font-size: 80px;
         margin-bottom: 20px;
     }
+    
+    /* AI 状态标识样式 */
+    .ai-status-badge {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-left: 10px;
+        vertical-align: middle;
+    }
+    
+    .ai-status-enabled {
+        background-color: #d1e7dd;
+        color: #0f5132;
+        border: 2px solid #198754;
+    }
+    
+    .ai-status-disabled {
+        background-color: #f8d7da;
+        color: #842029;
+        border: 2px solid #dc3545;
+    }
+    
+    .ai-status-icon {
+        margin-right: 5px;
+        font-size: 1.1rem;
+    }
 </style>
 {% endblock %}
 
@@ -122,14 +150,30 @@
 
 <div class="card">
     <div class="card-header">
-        <h3>您的反诈风险评估报告</h3>
+        <h3>您的反诈风险评估报告
+            {% if enable_ai_analysis %}
+            <span class="ai-status-badge ai-status-enabled">
+                <i class="ai-status-icon">🤖</i>AI 智能分析已启用
+            </span>
+            {% else %}
+            <span class="ai-status-badge ai-status-disabled">
+                <i class="ai-status-icon">⚠️</i>AI 智能分析已禁用
+            </span>
+            {% endif %}
+        </h3>
     </div>
     <div class="card-body p-4">
 
         <!-- AI 状态提示 -->
+        {% if enable_ai_analysis %}
         <div class="alert alert-success text-center mb-4">
-            <strong>✅ AI分析已完成</strong>（通义千问大模型生成）
+            <strong>✅ 使用 AI 智能分析</strong>（通义千问大模型生成）
         </div>
+        {% else %}
+        <div class="alert alert-warning text-center mb-4">
+            <strong>⚠️ AI 智能分析已禁用</strong>（仅使用基础评分规则）
+        </div>
+        {% endif %}
 
         <!-- 风险等级 -->
         <div class="text-center mb-4">

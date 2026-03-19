@@ -90,8 +90,12 @@ def view():
                 assessment_data[field] = json.loads(assessment_data[field])
             except json.JSONDecodeError:
                 assessment_data[field] = []
+    
+    # 【新增】获取 AI 智能分析配置状态
+    from app.models.questionnaire import QuestionnaireConfig
+    enable_ai_analysis = QuestionnaireConfig.get_config('enable_ai_analysis', '1') == '1'
 
-    return render_template('reports/report.html', data=assessment_data)
+    return render_template('reports/report.html', data=assessment_data, enable_ai_analysis=enable_ai_analysis)
 
 
 @report_bp.route('/export-pdf')

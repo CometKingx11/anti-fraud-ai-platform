@@ -12,6 +12,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, send_fil
 from flask_login import login_required, current_user
 from app.utils.decorators import role_required
 from app.services.export_service import ExportService
+from sqlalchemy import func
 
 # 创建管理员蓝图
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
@@ -23,13 +24,90 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 def dashboard():
     """
     管理员仪表板
-    显示所有用户的提交记录
+    显示所有用户的提交记录（支持筛选、排序和统计）
     """
-    # 获取所有提交记录，按时间倒序排列
-    submissions = Submission.query.order_by(
-        Submission.submitted_at.desc()).all()
-
-    return render_template('admin/dashboard.html', submissions=submissions)
+    # 获取筛选参数
+    risk_filter = request.args.get('risk_level', 'all')  # all, 极高风险，高风险，中风险，低风险
+    sort_by = request.args.get('sort', 'submitted_at')  # submitted_at, final_score, submit_count
+    order = request.args.get('order', 'desc')  # asc, desc
+    
+    # 基础查询
+    submissions_query = Submission.query.join(User).order_by(getattr(Submission, sort_by, Submission.submitted_at))
+    
+    # 风险等级筛选
+    if risk_filter != 'all':
+        submissions_query = submissions_query.filter(Submission.risk_level == risk_filter)
+    
+    # 排序
+    if sort_by == 'final_score':
+        if order == 'asc':
+            submissions_query = submissions_query.order_by(Submission.final_score.asc())
+        else:
+            submissions_query = submissions_query.order_by(Submission.final_score.desc())
+    elif sort_by == 'submit_count':
+        # 按提交次数排序需要子查询
+        subq = db.session.query(
+            Submission.user_id,
+            func.count(Submission.id).label('cnt')
+        ).group_by(Submission.user_id).subquery()
+        
+        if order == 'asc':
+            submissions_query = submissions_query.outerjoin(subq, Submission.user_id == subq.c.user_id).order_by(subq.c.cnt.asc())
+        else:
+            submissions_query = submissions_query.outerjoin(subq, Submission.user_id == subq.c.user_id).order_by(subq.c.cnt.desc())
+    else:  # submitted_at
+        if order == 'asc':
+            submissions_query = submissions_query.order_by(Submission.submitted_at.asc())
+        else:
+            submissions_query = submissions_query.order_by(Submission.submitted_at.desc())
+    
+    all_submissions = submissions_query.all()
+    
+    # 统计每个用户的提交次数
+    submission_counts = db.session.query(
+        Submission.user_id,
+        func.count(Submission.id).label('count')
+    ).group_by(Submission.user_id).all()
+    count_dict = {sc.user_id: sc.count for sc in submission_counts}
+    
+    # 为每个提交对象添加提交次数属性
+    for s in all_submissions:
+        s.submit_count = count_dict.get(s.user_id, 0)
+    
+    # 获取高风险用户 TOP10（按平均风险分排序）
+    high_risk_users = db.session.query(
+        User.id,
+        User.student_id,
+        User.name,
+        func.avg(Submission.final_score).label('avg_score'),
+        func.count(Submission.id).label('total_submits'),
+        func.max(Submission.risk_level).label('max_risk')
+    ).join(Submission).filter(
+        Submission.risk_level.in_(['高风险', '极高风险'])
+    ).group_by(User.id).order_by(
+        func.avg(Submission.final_score).desc()
+    ).limit(10).all()
+    
+    # 统计数据
+    total_submissions = Submission.query.count()
+    total_students = User.query.filter_by(role='student').count()
+    high_risk_count = Submission.query.filter(Submission.risk_level.in_(['高风险', '极高风险'])).count()
+    
+    # 导入时区转换工具
+    from datetime import timedelta
+    from flask import current_app
+    
+    return render_template('admin/dashboard.html', 
+                         submissions=all_submissions,
+                         total_submissions=total_submissions,
+                         total_students=total_students,
+                         high_risk_count=high_risk_count,
+                         high_risk_users=high_risk_users,
+                         config=current_app.config,
+                         timedelta=timedelta,
+                         current_risk=risk_filter,
+                         current_sort=sort_by,
+                         current_order=order)
 
 
 @admin_bp.route('/users')
@@ -38,11 +116,46 @@ def dashboard():
 def users():
     """
     用户管理页面
-    显示所有用户列表
+    显示所有用户列表（支持按角色分页）
     """
-    # 获取所有用户，按角色和学号排序
-    users = User.query.order_by(User.role, User.student_id).all()
-    return render_template('admin/users.html', users=users)
+    # 获取当前页码
+    page = request.args.get('page', 1, type=int)
+    role_filter = request.args.get('role', 'all')  # all, student, teacher, admin
+    search_keyword = request.args.get('search', '').strip()  # 搜索关键词
+    
+    # 根据角色筛选
+    if role_filter == 'all':
+        users_query = User.query.order_by(User.role, User.student_id)
+    else:
+        users_query = User.query.filter_by(role=role_filter).order_by(User.student_id)
+    
+    # 如果有搜索关键词，进行筛选
+    if search_keyword:
+        # 按学号或姓名搜索
+        users_query = users_query.filter(
+            db.or_(
+                User.student_id.like(f'%{search_keyword}%'),
+                User.name.like(f'%{search_keyword}%')
+            )
+        )
+    
+    # 分页（每页 20 条）
+    pagination = users_query.paginate(page=page, per_page=20, error_out=False)
+    users = pagination.items
+    
+    # 统计各角色数量
+    total_students = User.query.filter_by(role='student').count()
+    total_teachers = User.query.filter_by(role='teacher').count()
+    total_admins = User.query.filter_by(role='admin').count()
+    
+    return render_template('admin/users.html', 
+                         users=users, 
+                         pagination=pagination,
+                         current_role=role_filter,
+                         search_keyword=search_keyword,
+                         total_students=total_students,
+                         total_teachers=total_teachers,
+                         total_admins=total_admins)
 
 
 @admin_bp.route('/users/<int:user_id>')
@@ -212,6 +325,67 @@ def reset_password(user_id):
     return redirect(url_for('admin.users'))
 
 
+@admin_bp.route('/users/batch-delete', methods=['POST'])
+@login_required
+@role_required('admin')
+def batch_delete_users():
+    """
+    批量删除用户
+    """
+    user_ids = request.form.getlist('user_ids')
+    
+    if not user_ids:
+        flash('未选择要删除的用户', 'warning')
+        return redirect(url_for('admin.users'))
+    
+    success_count = 0
+    failed_count = 0
+    errors = []
+    
+    for user_id_str in user_ids:
+        try:
+            user_id = int(user_id_str)
+            user = User.query.get_or_404(user_id)
+            
+            # 不能删除自己
+            if user.id == current_user.id:
+                failed_count += 1
+                errors.append(f'不能删除当前登录的管理员账户：{user.student_id}')
+                continue
+            
+            # 不能删除管理员
+            if user.role == 'admin':
+                failed_count += 1
+                errors.append(f'不能删除管理员账户：{user.student_id}')
+                continue
+            
+            # 先删除该用户的所有提交记录（避免外键约束错误）
+            submissions = Submission.query.filter_by(user_id=user_id).all()
+            for submission in submissions:
+                db.session.delete(submission)
+            
+            # 删除用户
+            User.delete_user(user_id)
+            success_count += 1
+            
+        except Exception as e:
+            failed_count += 1
+            errors.append(f'删除失败 {user_id_str}: {str(e)}')
+    
+    # 显示结果
+    if success_count > 0:
+        flash(f'成功删除 {success_count} 个用户', 'success')
+    
+    if failed_count > 0:
+        flash(f'失败 {failed_count} 个用户', 'warning')
+        for error in errors[:5]:  # 只显示前 5 个错误
+            flash(error, 'danger')
+        if len(errors) > 5:
+            flash(f'还有 {len(errors) - 5} 个错误未显示', 'warning')
+    
+    return redirect(url_for('admin.users'))
+
+
 @admin_bp.route('/users/<int:user_id>/set-password', methods=['POST'])
 @login_required
 @role_required('admin')
@@ -269,9 +443,10 @@ def import_users():
             flash('未选择文件', 'danger')
             return redirect(url_for('admin.import_users'))
 
-        if file and file.filename.endswith('.csv'):
+        # 检查文件扩展名（支持 CSV 和 XLSX）
+        if file and (file.filename.endswith('.csv') or file.filename.endswith('.xlsx')):
             try:
-                from app.services.batch_import_service import import_users_from_csv
+                from app.services.batch_import_service import import_users_from_file
                 import os
                 from werkzeug.utils import secure_filename
 
@@ -282,15 +457,13 @@ def import_users():
                 file_path = os.path.join(uploads_dir, filename)
                 file.save(file_path)
 
-                # 导入用户
-                result = import_users_from_csv(file_path)
-
-                # 删除临时文件
-                os.remove(file_path)
+                # 导入用户（自动识别文件类型）
+                result = import_users_from_file(file_path)
 
                 # 显示结果
                 if result['success'] > 0:
                     flash(f'成功导入 {result["success"]} 个用户', 'success')
+                    flash('未设置密码的账户将使用默认密码：12345678', 'info')
                 if result['failed'] > 0:
                     flash(f'失败 {result["failed"]} 个用户', 'warning')
 
@@ -300,12 +473,22 @@ def import_users():
                     if len(result['errors']) > 5:
                         flash(f'还有 {len(result["errors"]) - 5} 个错误未显示', 'warning')
 
+                # 尝试删除临时文件（即使失败也不影响导入结果）
+                try:
+                    import time
+                    time.sleep(0.1)  # 等待文件句柄释放
+                    os.remove(file_path)
+                except Exception as remove_error:
+                    # 文件删除失败不影响导入成功，只记录日志
+                    import logging
+                    logging.warning(f'临时文件删除失败：{file_path}, 错误：{str(remove_error)}')
+
                 return redirect(url_for('admin.users'))
 
             except Exception as e:
                 flash(f'导入失败：{str(e)}', 'danger')
         else:
-            flash('只支持 CSV 格式文件', 'danger')
+            flash('只支持 CSV 和 Excel (.xlsx) 格式文件', 'danger')
 
     return render_template('admin/import_users.html')
 
@@ -315,23 +498,73 @@ def import_users():
 @role_required('admin')
 def download_import_template():
     """
-    下载导入模板
+    下载导入模板（Excel 格式）
     """
     from flask import send_file
     import os
     
-    template_path = os.path.join(os.getcwd(), 'users_import_example.csv')
+    # 检查是否有 Excel 模板文件
+    excel_template_path = os.path.join(os.getcwd(), 'students_for_import.xlsx')
     
-    if os.path.exists(template_path):
+    if os.path.exists(excel_template_path):
         return send_file(
-            template_path,
-            mimetype='text/csv',
+            excel_template_path,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             as_attachment=True,
-            download_name='用户导入模板.csv'
+            download_name='用户导入模板.xlsx'
         )
     else:
-        flash('模板文件不存在', 'danger')
-        return redirect(url_for('admin.import_users'))
+        # 如果 Excel 模板不存在，尝试生成
+        try:
+            from openpyxl import Workbook
+            
+            # 创建工作簿
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "用户导入"
+            
+            # 添加表头
+            headers = ['student_id', 'name', 'email', 'role', 'password']
+            ws.append(headers)
+            
+            # 添加示例数据
+            sample_data = [
+                ['20240001', '张三', 'zhangsan@example.com', 'student', '123456'],
+                ['20240002', '李四', 'lisi@example.com', 'student', '123456'],
+                ['20240003', '王五', 'wangwu@example.com', 'student', '123456'],
+                ['20240004', '赵六', 'zhaoliu@example.com', 'teacher', '123456'],
+                ['20240005', '钱七', 'qianqi@example.com', 'student', ''],
+            ]
+            
+            for data in sample_data:
+                ws.append(data)
+            
+            # 调整列宽
+            ws.column_dimensions['A'].width = 15
+            ws.column_dimensions['B'].width = 10
+            ws.column_dimensions['C'].width = 25
+            ws.column_dimensions['D'].width = 10
+            ws.column_dimensions['E'].width = 12
+            
+            # 保存文件
+            os.makedirs(os.path.join(os.getcwd(), 'uploads'), exist_ok=True)
+            template_path = os.path.join(os.getcwd(), 'students_for_import.xlsx')
+            wb.save(template_path)
+            wb.close()
+            
+            return send_file(
+                template_path,
+                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                as_attachment=True,
+                download_name='用户导入模板.xlsx'
+            )
+            
+        except ImportError:
+            flash('缺少 openpyxl 库，无法生成 Excel 模板。请安装：pip install openpyxl==3.1.2', 'danger')
+            return redirect(url_for('admin.import_users'))
+        except Exception as e:
+            flash(f'生成模板失败：{str(e)}', 'danger')
+            return redirect(url_for('admin.import_users'))
 
 
 @admin_bp.route('/users/<int:user_id>/toggle-status', methods=['POST'])
@@ -439,4 +672,266 @@ def toggle_submission_valid(submission_id):
     status_text = '有效' if submission.is_valid else '无效'
     flash(f'已标记为{status_text}', 'success')
     return redirect(url_for('admin.dashboard'))
+
+
+@admin_bp.route('/submissions/<int:submission_id>/view-report')
+@login_required
+@role_required('admin')
+def view_submission_report(submission_id):
+    """
+    查看指定提交记录的详细报告
+    """
+    submission = Submission.query.get_or_404(submission_id)
+    
+    # 将提交记录转换为字典格式，与评估数据格式保持一致
+    report_data = submission.to_dict()
+    
+    # 解析 JSON 字段
+    json_fields = ['risk_points', 'suggestions', 'push_contents', 'uploaded_images', 'url_risk_info']
+    for field in json_fields:
+        if field in report_data and isinstance(report_data[field], str):
+            try:
+                import json
+                report_data[field] = json.loads(report_data[field])
+            except:
+                report_data[field] = []
+    
+    # 确保有 assessment 需要的关键字段
+    if 'assessment' not in report_data:
+        report_data['assessment'] = report_data
+    
+    # 导入配置和时区转换
+    from datetime import timedelta
+    from flask import current_app
+    
+    return render_template(
+        'admin/submission_report.html',
+        submission=submission,
+        data=report_data,
+        config=current_app.config,
+        timedelta=timedelta
+    )
+
+
+@admin_bp.route('/submissions/<int:submission_id>/export-pdf')
+@login_required
+@role_required('admin')
+def export_submission_pdf(submission_id):
+    """
+    导出指定提交记录的 PDF 报告
+    """
+    from app.services.pdf_service import PDFService
+    
+    submission = Submission.query.get_or_404(submission_id)
+    
+    # 将提交记录转换为字典格式
+    assessment_data = submission.to_dict()
+    
+    # 解析 JSON 字段
+    json_fields = ['risk_points', 'suggestions', 'push_contents']
+    for field in json_fields:
+        if field in assessment_data and isinstance(assessment_data[field], str):
+            try:
+                import json
+                assessment_data[field] = json.loads(assessment_data[field])
+            except:
+                assessment_data[field] = []
+    
+    # 生成 PDF
+    pdf_buffer = PDFService.generate_report_pdf(assessment_data)
+    
+    # 返回 PDF 文件
+    filename = f"反诈风险评估报告_{submission.user.student_id}_{submission.submitted_at.strftime('%Y%m%d_%H%M%S')}.pdf"
+    
+    return send_file(
+        pdf_buffer,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=filename
+    )
+
+
+@admin_bp.route('/uploads/<filename>')
+@login_required
+@role_required('admin')
+def uploaded_file(filename):
+    """
+    提供上传文件的访问
+    """
+    import os
+    from werkzeug.utils import secure_filename
+    
+    uploads_dir = os.path.join(os.getcwd(), 'uploads')
+    
+    # 直接使用文件名，不使用 secure_filename（因为会破坏中文）
+    # 但需要手动清理路径防止遍历攻击
+    safe_filename = filename.replace('..', '').replace('/', '').replace('\\\\', '')
+    file_path = os.path.join(uploads_dir, safe_filename)
+    
+    if os.path.exists(file_path):
+        return send_file(file_path)
+    else:
+        flash(f'文件不存在：{safe_filename}', 'danger')
+        print(f"文件不存在：{file_path}")  # 调试信息
+        return redirect(url_for('admin.dashboard'))
+
+
+@admin_bp.route('/submissions/<int:submission_id>/delete', methods=['POST'])
+@login_required
+@role_required('admin')
+def delete_submission(submission_id):
+    """
+    删除指定的提交记录
+    """
+    submission = Submission.query.get_or_404(submission_id)
+    
+    try:
+        # 删除相关的图片文件
+        import os
+        import json
+        
+        if submission.uploaded_images:
+            try:
+                image_paths = json.loads(submission.uploaded_images)
+                for image_path in image_paths:
+                    if os.path.exists(image_path):
+                        os.remove(image_path)
+                        print(f"已删除图片：{image_path}")
+            except:
+                pass  # 如果解析失败，跳过图片删除
+        
+        # 删除提交记录
+        db.session.delete(submission)
+        db.session.commit()
+        
+        flash(f'✅ 成功删除提交记录（ID: {submission_id}）', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ 删除失败：{str(e)}', 'danger')
+        print(f"删除提交记录失败：{str(e)}")
+    
+    return redirect(url_for('admin.dashboard'))
+
+
+@admin_bp.route('/submissions/delete-multiple', methods=['POST'])
+@login_required
+@role_required('admin')
+def delete_multiple_submissions():
+    """
+    批量删除提交记录
+    """
+    # 获取选中的提交 ID 列表
+    submission_ids = request.form.getlist('submission_ids[]')
+    
+    if not submission_ids:
+        flash('❌ 请选择要删除的提交记录', 'warning')
+        return redirect(url_for('admin.dashboard'))
+    
+    try:
+        deleted_count = 0
+        for submission_id in submission_ids:
+            submission = Submission.query.get(int(submission_id))
+            if submission:
+                # 删除相关的图片文件
+                import os
+                import json
+                
+                if submission.uploaded_images:
+                    try:
+                        image_paths = json.loads(submission.uploaded_images)
+                        for image_path in image_paths:
+                            if os.path.exists(image_path):
+                                os.remove(image_path)
+                    except:
+                        pass
+                
+                # 删除提交记录
+                db.session.delete(submission)
+                deleted_count += 1
+        
+        db.session.commit()
+        flash(f'✅ 成功删除 {deleted_count} 条提交记录', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ 批量删除失败：{str(e)}', 'danger')
+        print(f"批量删除失败：{str(e)}")
+    
+    return redirect(url_for('admin.dashboard'))
+
+
+@admin_bp.route('/ai-report')
+@login_required
+@role_required('admin')
+def ai_report():
+    """
+    AI 统计报告页面
+    显示基于千问 AI 生成的整体统计分析报告
+    """
+    from app.services.ai_report_service import AIReportService
+    
+    # 获取筛选参数
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    risk_level = request.args.get('risk_level', 'all')
+    
+    # 如果不是'all'则使用筛选，否则不使用
+    risk_filter = risk_level if risk_level != 'all' else None
+    
+    # 生成报告
+    report_service = AIReportService()
+    report = report_service.generate_statistical_report(
+        start_date=start_date if start_date else None,
+        end_date=end_date if end_date else None,
+        risk_level=risk_filter
+    )
+    
+    return render_template('admin/ai_report.html', 
+                         report=report,
+                         start_date=start_date,
+                         end_date=end_date,
+                         risk_level=risk_level)
+
+
+@admin_bp.route('/export-ai-report', methods=['POST'])
+@login_required
+@role_required('admin')
+def export_ai_report():
+    """
+    导出 AI 统计报告为 PDF 格式
+    """
+    from app.services.ai_report_service import AIReportService
+    from app.services.export_service import ExportService
+    
+    # 获取筛选参数
+    start_date = request.form.get('start_date', '')
+    end_date = request.form.get('end_date', '')
+    risk_level = request.form.get('risk_level', 'all')
+    
+    # 如果不是'all'则使用筛选，否则不使用
+    risk_filter = risk_level if risk_level != 'all' else None
+    
+    try:
+        # 生成报告
+        report_service = AIReportService()
+        report = report_service.generate_statistical_report(
+            start_date=start_date if start_date else None,
+            end_date=end_date if end_date else None,
+            risk_level=risk_filter
+        )
+        
+        # 导出为 PDF
+        pdf_buffer = ExportService.export_ai_report_to_pdf(report['ai_analysis'])
+        
+        # 发送文件
+        filename = ExportService.get_export_filename('ai_report')
+        return send_file(
+            pdf_buffer,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=filename
+        )
+    except Exception as e:
+        flash(f'❌ 导出失败：{str(e)}', 'danger')
+        print(f"导出 AI 报告失败：{str(e)}")
+        return redirect(url_for('admin.ai_report'))
 

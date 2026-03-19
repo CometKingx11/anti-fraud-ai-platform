@@ -1,0 +1,413 @@
+{% extends "base.html" %}
+
+{% block title %}评分规则管理 - 大学生反诈风险评估{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .weight-input {
+        width: 80px;
+        text-align: center;
+    }
+    .threshold-slider {
+        width: 100%;
+    }
+    .dimension-card {
+        transition: all 0.3s;
+    }
+    .dimension-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- 页面标题 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">仪表板</a></li>
+                    <li class="breadcrumb-item active">评分规则管理</li>
+                </ol>
+            </nav>
+            <h2><i class="fas fa-balance-scale"></i> 评分规则管理</h2>
+            <p class="text-muted">手动调整评分权重、风险阈值，优化风险评估准确率</p>
+        </div>
+    </div>
+
+    <!-- 风险提示 -->
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle"></i> 
+        <strong>注意：</strong>修改评分规则会影响所有历史数据和未来评估结果，请谨慎调整！建议先使用回测功能验证效果。
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- 风险阈值配置 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-line"></i> 风险阈值配置</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('scoring_rules.update_thresholds') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                低风险阈值上限：<span id="threshold_low_value" class="text-primary">{{ threshold_low }}分</span>
+                            </label>
+                            <input type="range" class="form-range threshold-slider" 
+                                   id="threshold_low" name="threshold_low" 
+                                   min="0" max="130" value="{{ threshold_low }}"
+                                   oninput="document.getElementById('threshold_low_value').textContent = this.value + '分'">
+                            <div class="form-text">≤ {{ threshold_low }}分为低风险</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                中风险阈值上限：<span id="threshold_mid_value" class="text-warning">{{ threshold_mid }}分</span>
+                            </label>
+                            <input type="range" class="form-range threshold-slider" 
+                                   id="threshold_mid" name="threshold_mid" 
+                                   min="0" max="130" value="{{ threshold_mid }}"
+                                   oninput="document.getElementById('threshold_mid_value').textContent = this.value + '分'">
+                            <div class="form-text">{{ threshold_low }} < {{ threshold_mid }}分为中风险</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                高风险阈值上限：<span id="threshold_high_value" class="text-danger">{{ threshold_high }}分</span>
+                            </label>
+                            <input type="range" class="form-range threshold-slider" 
+                                   id="threshold_high" name="threshold_high" 
+                                   min="0" max="130" value="{{ threshold_high }}"
+                                   oninput="document.getElementById('threshold_high_value').textContent = this.value + '分'">
+                            <div class="form-text">{{ threshold_mid }} < {{ threshold_high }}分为高风险，> {{ threshold_high }}分为极高风险</div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> 保存阈值配置
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 维度满分配置 -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-trophy"></i> 维度满分配置</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('scoring_rules.update_dimension_max') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="mb-3">
+                            <label for="max_cognitive" class="form-label fw-bold">认知维度满分</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="max_cognitive" name="max_cognitive" 
+                                       value="{{ max_cognitive }}" min="0" max="100">
+                                <span class="input-group-text">分</span>
+                            </div>
+                            <div class="form-text">认知维度理论满分值</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="max_behavior" class="form-label fw-bold">行为维度满分</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="max_behavior" name="max_behavior" 
+                                       value="{{ max_behavior }}" min="0" max="100">
+                                <span class="input-group-text">分</span>
+                            </div>
+                            <div class="form-text">行为维度理论满分值</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="max_experience" class="form-label fw-bold">经历维度满分</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="max_experience" name="max_experience" 
+                                       value="{{ max_experience }}" min="0" max="100">
+                                <span class="input-group-text">分</span>
+                            </div>
+                            <div class="form-text">经历维度理论满分值</div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <strong>当前总分上限：</strong><span id="total_max">{{ max_cognitive + max_behavior + max_experience }}</span>分
+                            <br>
+                            <small>建议保持总和 ≤ 130 分</small>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save"></i> 保存维度配置
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 题目权重配置 -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-sliders-h"></i> 题目权重配置</h5>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="filterQuestions('all')">
+                    <i class="fas fa-list"></i> 全部题目
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-info" onclick="filterQuestions('cognitive')">
+                    <i class="fas fa-brain"></i> 认知维度
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-warning" onclick="filterQuestions('behavior')">
+                    <i class="fas fa-running"></l> 行为维度
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="filterQuestions('experience')">
+                    <i class="fas fa-history"></i> 经历维度
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary float-end" onclick="resetAllWeights()">
+                    <i class="fas fa-undo"></i> 重置所有权重
+                </button>
+            </div>
+
+            <form id="weights-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                
+                <div class="table-responsive">
+                    <table class="table table-hover" id="questions-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>题号</th>
+                                <th>题目内容</th>
+                                <th>维度</th>
+                                <th>计分方式</th>
+                                <th>分值范围</th>
+                                <th>当前权重</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for question in questions %}
+                            <tr class="question-row" data-dimension="{{ question.dimension }}">
+                                <td><strong>{{ question.question_number }}</strong></td>
+                                <td>{{ question.question_text[:50] }}{% if question.question_text|length > 50 %}...{% endif %}</td>
+                                <td>
+                                    {% if question.dimension == 'cognitive' %}
+                                        <span class="badge bg-info">认知</span>
+                                    {% elif question.dimension == 'behavior' %}
+                                        <span class="badge bg-warning">行为</span>
+                                    {% elif question.dimension == 'experience' %}
+                                        <span class="badge bg-danger">经历</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">其他</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if question.category == 'behavior' %}
+                                        <span class="badge bg-dark">反向计分</span>
+                                    {% else %}
+                                        <span class="badge bg-success">正向计分</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ question.min_score }} - {{ question.max_score }}</td>
+                                <td>
+                                    <input type="number" class="form-control weight-input" 
+                                           name="weight_{{ question.id }}" 
+                                           value="{{ question.weight }}" 
+                                           step="0.1" min="0" max="5"
+                                           data-question-id="{{ question.id }}">
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                            onclick="resetSingleWeight({{ question.id }})">
+                                        <i class="fas fa-undo"></i> 重置
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-primary btn-lg" onclick="saveAllWeights()">
+                        <i class="fas fa-save"></i> 批量保存权重
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 使用说明 -->
+    <div class="card mt-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="fas fa-book"></i> 使用说明</h5>
+        </div>
+        <div class="card-body">
+            <h6>📊 风险阈值配置</h6>
+            <ul>
+                <li><strong>低风险</strong>：得分 ≤ 阈值，学生风险较低</li>
+                <li><strong>中风险</strong>：低阈值 < 得分 ≤ 中阈值，需要关注</li>
+                <li><strong>高风险</strong>：中阈值 < 得分 ≤ 高阈值，需要干预</li>
+                <li><strong>极高风险</strong>：得分 > 高阈值，立即干预</li>
+            </ul>
+
+            <h6 class="mt-4">⚖️ 维度满分配置</h6>
+            <ul>
+                <li><strong>认知维度</strong>：考察学生对诈骗的认知程度（建议 40 分）</li>
+                <li><strong>行为维度</strong>：考察学生的危险行为倾向（建议 40 分）</li>
+                <li><strong>经历维度</strong>：考察学生是否经历过诈骗（建议 20 分）</li>
+                <li><strong>总分上限</strong>：三个维度满分之和，建议保持 130 分</li>
+            </ul>
+
+            <h6 class="mt-4">🎯 题目权重配置</h6>
+            <ul>
+                <li><strong>权重范围</strong>：0.0 - 5.0，默认为 1.0</li>
+                <li><strong>权重含义</strong>：权重越高，该题对总分影响越大</li>
+                <li><strong>正向计分</strong>：得分越高越安全（认知/经历题）</li>
+                <li><strong>反向计分</strong>：得分越高风险越大（行为题）</li>
+                <li><strong>批量保存</strong>：点击"批量保存权重"按钮保存所有修改</li>
+            </ul>
+
+            <div class="alert alert-warning mt-3">
+                <strong>⚠️ 重要提示：</strong>
+                <ul>
+                    <li>修改评分规则会影响所有历史数据的风险等级判定</li>
+                    <li>建议先在测试环境验证效果后再应用到生产环境</li>
+                    <li>定期根据实际数据调整规则，优化评估准确率</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// 筛选题目
+function filterQuestions(dimension) {
+    const rows = document.querySelectorAll('.question-row');
+    rows.forEach(row => {
+        if (dimension === 'all' || row.dataset.dimension === dimension) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// 保存所有权重
+function saveAllWeights() {
+    const weights = {};
+    const inputs = document.querySelectorAll('.weight-input');
+    
+    inputs.forEach(input => {
+        const questionId = input.dataset.questionId;
+        const weight = parseFloat(input.value);
+        
+        // 验证权重范围
+        if (weight < 0 || weight > 5) {
+            alert(`权重必须在 0-5 之间！题号${questionId}的权重为${weight}`);
+            return;
+        }
+        
+        weights[questionId] = weight;
+    });
+    
+    if (Object.keys(weights).length === 0) {
+        alert('没有找到可保存的权重数据');
+        return;
+    }
+    
+    if (!confirm('确定要保存所有权重修改吗？\n\n此操作会影响所有历史数据的评估结果！')) {
+        return;
+    }
+    
+    // 发送 AJAX 请求
+    fetch('{{ url_for("scoring_rules.update_weights") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ weights: weights })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ 权重保存成功！');
+            location.reload();
+        } else {
+            alert('❌ 保存失败：' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('❌ 网络错误：' + error);
+    });
+}
+
+// 重置单个权重
+function resetSingleWeight(questionId) {
+    if (!confirm('确定要重置这道题的权重为 1.0 吗？')) {
+        return;
+    }
+    
+    fetch(`/admin/scoring-rules/reset-question/${questionId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => {
+        if (response.redirected) {
+            location.reload();
+        }
+    });
+}
+
+// 重置所有权重
+function resetAllWeights() {
+    if (!confirm('⚠️ 确定要重置所有题目的权重为 1.0 吗？\n\n此操作不可恢复！')) {
+        return;
+    }
+    
+    const inputs = document.querySelectorAll('.weight-input');
+    inputs.forEach(input => {
+        input.value = 1.0;
+    });
+    
+    alert('已重置所有权重为 1.0，请点击"批量保存权重"按钮保存修改');
+}
+
+// 实时更新总分上限显示
+document.getElementById('max_cognitive')?.addEventListener('input', updateTotalMax);
+document.getElementById('max_behavior')?.addEventListener('input', updateTotalMax);
+document.getElementById('max_experience')?.addEventListener('input', updateTotalMax);
+
+function updateTotalMax() {
+    const cognitive = parseInt(document.getElementById('max_cognitive').value) || 0;
+    const behavior = parseInt(document.getElementById('max_behavior').value) || 0;
+    const experience = parseInt(document.getElementById('max_experience').value) || 0;
+    const total = cognitive + behavior + experience;
+    
+    const totalElement = document.getElementById('total_max');
+    totalElement.textContent = total;
+    
+    if (total > 130) {
+        totalElement.parentElement.classList.add('alert-danger');
+        totalElement.parentElement.classList.remove('alert-info');
+    } else {
+        totalElement.parentElement.classList.add('alert-info');
+        totalElement.parentElement.classList.remove('alert-danger');
+    }
+}
+</script>
+{% endblock %}

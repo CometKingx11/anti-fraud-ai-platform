@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{% block title %}提交记录详情 - 反诈风险评估平台{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- 返回按钮 -->
+    <div class="mb-4">
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> 返回仪表板
+        </a>
+        <button onclick="window.print()" class="btn btn-outline-primary ms-2">
+            <i class="fas fa-print"></i> 打印报告
+        </button>
+        <a href="{{ url_for('admin.export_submission_pdf', submission_id=submission.id) }}" class="btn btn-outline-success ms-2">
+            <i class="fas fa-file-pdf"></i> 导出 PDF
+        </a>
+    </div>
+
+    <!-- 基本信息卡片 -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-user-circle"></i> 基本信息</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <strong><i class="fas fa-id-card"></i> 学号：</strong>
+                    <span class="ms-2">{{ submission.user.student_id }}</span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <strong><i class="fas fa-user"></i> 姓名：</strong>
+                    <span class="ms-2">{{ submission.user.name or '未填写' }}</span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <strong><i class="fas fa-calendar-alt"></i> 提交时间：</strong>
+                    <span class="ms-2">{{ (submission.submitted_at + timedelta(hours=8)).strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <strong><i class="fas fa-hashtag"></i> 提交 ID：</strong>
+                    <span class="ms-2">{{ submission.id }}</span>
+                </div>
+                {% if submission.ip_address %}
+                <div class="col-md-6 mb-3">
+                    <strong><i class="fas fa-globe"></i> IP 地址：</strong>
+                    <span class="ms-2">{{ submission.ip_address }}</span>
+                </div>
+                {% endif %}
+                <div class="col-md-6 mb-3">
+                    <strong><i class="fas fa-check-circle"></i> 数据状态：</strong>
+                    {% if submission.is_valid %}
+                    <span class="badge bg-success ms-2">有效</span>
+                    {% else %}
+                    <span class="badge bg-danger ms-2">无效</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 风险等级和分数 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card border-{% if submission.risk_level == '高风险' or submission.risk_level == '极高风险' %}danger{% elif submission.risk_level == '中风险' %}warning{% else %}success{% endif %}">
+                <div class="card-header {% if submission.risk_level == '高风险' or submission.risk_level == '极高风险' %}bg-danger text-white{% elif submission.risk_level == '中风险' %}bg-warning{% else %}bg-success text-white{% endif %}">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> 风险等级</h5>
+                </div>
+                <div class="card-body text-center">
+                    <h2 class="mb-0">{{ submission.risk_level }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> 评分概览</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <h6>基础分</h6>
+                            <h3 class="text-primary">{{ submission.base_score }}/100</h3>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <h6>最终分</h6>
+                            <h3 class="text-success">{{ submission.final_score }}/130</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 维度得分 -->
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="fas fa-chart-pie"></i> 维度得分详情</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 25%;">维度</th>
+                        <th style="width: 25%;">得分</th>
+                        <th style="width: 50%;">说明</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><i class="fas fa-brain"></i> 认知维度</td>
+                        <td>
+                            <div class="progress" style="height: 25px;">
+                                <div class="progress-bar bg-info" role="progressbar" 
+                                     style="width: {{ (submission.cognitive / 40 * 100)|int }}%;" 
+                                     aria-valuenow="{{ submission.cognitive }}" aria-valuemin="0" aria-valuemax="40">
+                                    {{ submission.cognitive }}/40
+                                </div>
+                            </div>
+                        </td>
+                        <td>（越高越安全）<i class="fas fa-check-circle text-success"></i></td>
+                    </tr>
+                    <tr>
+                        <td><i class="fas fa-running"></i> 行为维度</td>
+                        <td>
+                            <div class="progress" style="height: 25px;">
+                                <div class="progress-bar bg-warning" role="progressbar" 
+                                     style="width: {{ (submission.behavior / 40 * 100)|int }}%;" 
+                                     aria-valuenow="{{ submission.behavior }}" aria-valuemin="0" aria-valuemax="40">
+                                    {{ submission.behavior }}/40
+                                </div>
+                            </div>
+                        </td>
+                        <td>（越高风险越大）<i class="fas fa-exclamation-circle text-warning"></i></td>
+                    </tr>
+                    <tr>
+                        <td><i class="fas fa-history"></i> 经历维度</td>
+                        <td>
+                            <div class="progress" style="height: 25px;">
+                                <div class="progress-bar bg-danger" role="progressbar" 
+                                     style="width: {{ (submission.experience / 20 * 100)|int }}%;" 
+                                     aria-valuenow="{{ submission.experience }}" aria-valuemin="0" aria-valuemax="20">
+                                    {{ submission.experience }}/20
+                                </div>
+                            </div>
+                        </td>
+                        <td>（越高风险越大）<i class="fas fa-exclamation-circle text-warning"></i></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- URL 风险信息 -->
+    {% if submission.url_risk_info and submission.url_risk_info != '[]' %}
+    <div class="card mb-4">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0"><i class="fas fa-link"></i> URL 风险检测结果 
+                {% if submission.url_risk_score > 0 %}
+                <span class="badge bg-warning text-dark ms-2">+{{ submission.url_risk_score }}分</span>
+                {% endif %}
+            </h5>
+        </div>
+        <div class="card-body">
+            {% set url_info = data.get('url_risk_info', []) %}
+            {% if url_info %}
+            <ul class="list-group">
+                {% for item in url_info %}
+                <li class="list-group-item {% if item.is_risk %}list-group-item-danger{% else %}list-group-item-success{% endif %}">
+                    <strong>URL:</strong> {{ item.url }}<br>
+                    <strong>风险类型:</strong> {{ item.risk_type or '未知' }}<br>
+                    <strong>来源:</strong> {{ item.source or '开放文本' }}<br>
+                    <strong>检测时间:</strong> {{ item.checked_at or '未知' }}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-muted">暂无 URL 风险信息</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 开放描述 -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="fas fa-comment-dots"></i> 开放描述</h5>
+        </div>
+        <div class="card-body">
+            <p class="card-text">{{ data.open_text or '无' }}</p>
+        </div>
+    </div>
+
+    <!-- AI 分析结果 -->
+    {% if data.get('analysis') and data.get('analysis') != 'AI 智能分析已禁用，仅使用基础评分规则' %}
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-robot"></i> AI 智能分析</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <strong><i class="fas fa-info-circle"></i> 详细分析总结：</strong>
+                <p class="mt-2">{{ data.analysis }}</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 风险点分析 -->
+    {% if data.get('risk_points') and data.get('risk_points')|length > 0 %}
+    <div class="card mb-4">
+        <div class="card-header bg-warning">
+            <h5 class="mb-0"><i class="fas fa-exclamation-circle"></i> 风险点分析</h5>
+        </div>
+        <div class="card-body">
+            <ul class="list-group list-group-flush">
+                {% for point in data.get('risk_points', []) %}
+                <li class="list-group-item">
+                    <i class="fas fa-exclamation-triangle text-danger"></i>
+                    {{ point }}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 个性化建议 -->
+    {% if data.get('suggestions') and data.get('suggestions')|length > 0 %}
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="fas fa-lightbulb"></i> 个性化反诈建议</h5>
+        </div>
+        <div class="card-body">
+            <ol class="list-group list-group-numbered">
+                {% for suggestion in data.get('suggestions', []) %}
+                <li class="list-group-item">{{ suggestion }}</li>
+                {% endfor %}
+            </ol>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 推荐推送内容 -->
+    {% if data.get('push_contents') and data.get('push_contents')|length > 0 %}
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="fas fa-bullhorn"></i> 推荐推送内容</h5>
+        </div>
+        <div class="card-body">
+            <ul class="list-group">
+                {% for content in data.get('push_contents', []) %}
+                <li class="list-group-item">
+                    <i class="fas fa-book-open"></i> {{ content }}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 上传图片 -->
+    {% if data.get('uploaded_images') and data.get('uploaded_images')|length > 0 %}
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="fas fa-images"></i> 上传的图片</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for image_path in data.get('uploaded_images', []) %}
+                {% set filename = image_path.split('\\')[-1] if '\\' in image_path else image_path.split('/')[-1] %}
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <a href="{{ url_for('admin.uploaded_file', filename=filename) }}" target="_blank">
+                            <img src="{{ url_for('admin.uploaded_file', filename=filename) }}" 
+                                 class="card-img-top img-thumbnail" alt="上传的图片">
+                        </a>
+                        <div class="card-footer text-center">
+                            <small class="text-muted">{{ filename }}</small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<style>
+    .card {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    
+    .progress {
+        border-radius: 0.5rem;
+    }
+    
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        
+        .card {
+            break-inside: avoid;
+        }
+    }
+</style>
+{% endblock %}
