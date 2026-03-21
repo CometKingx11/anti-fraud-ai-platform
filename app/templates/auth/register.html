@@ -1,0 +1,88 @@
+<!--
+ * @Author: 小土豆 233
+ * @Date: 2026-03-18 00:00:00
+ * @LastEditTime: 2026-03-18 00:00:00
+ * @LastEditors: 小土豆 233
+ * @Description: 用户自助注册页面
+ * @FilePath: \flask_anti_project\app\templates\auth\register.html
+-->
+{% extends "base.html" %}
+
+{% block title %}用户注册 - 反诈风险评估平台{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white text-center">
+                <h4><i class="fas fa-user-plus me-2"></i>用户自助注册</h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    
+                    <div class="mb-3">
+                        <label class="form-label"><i class="fas fa-id-card me-1"></i>学号 <span class="text-danger">*</span></label>
+                        <input type="text" name="student_id" class="form-control" placeholder="请输入 8-12 位学号" required autofocus pattern="\d{8,12}" title="学号应为 8-12 位数字">
+                        <div class="form-text">请输入您的 8-12 位学号，注册后请联系管理员审核激活</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><i class="fas fa-user me-1"></i>姓名 <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" placeholder="请输入真实姓名" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><i class="fas fa-envelope me-1"></i>邮箱</label>
+                        <input type="email" name="email" class="form-control" placeholder="example@qq.com" required>
+                        <div class="form-text">
+                            <strong>💡 推荐：</strong>使用 QQ 邮箱（如：123456@qq.com）<br>
+                            <small class="text-muted">
+                                ✓ 免费开通  ✓ 即时接收  ✓ 支持邮件提醒
+                                <a href="https://mail.qq.com" target="_blank" rel="noopener" class="text-decoration-none ms-2">
+                                    <i class="fas fa-external-link-alt"></i>立即注册 QQ 邮箱
+                                </a>
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><i class="fas fa-lock me-1"></i>密码 <span class="text-danger">*</span></label>
+                        <input type="password" name="password" class="form-control" placeholder="至少 6 位字符" required minlength="6">
+                        <div class="form-text">密码长度至少为 6 位字符</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><i class="fas fa-lock me-1"></i>确认密码 <span class="text-danger">*</span></label>
+                        <input type="password" name="confirm_password" class="form-control" placeholder="再次输入密码" required minlength="6">
+                    </div>
+
+                    <div class="alert alert-info" role="alert">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <strong>温馨提示：</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>注册成功后账号处于待审核状态</li>
+                            <li>请联系管理员审核后激活账号</li>
+                            <li>首次登录请修改初始密码</li>
+                        </ul>
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100 mb-2">
+                        <i class="fas fa-user-plus me-1"></i>立即注册
+                    </button>
+                </form>
+
+                <div class="text-center">
+                    <hr>
+                    <p class="mb-0">
+                        已有账号？
+                        <a href="{{ url_for('auth.login') }}" class="text-decoration-none">
+                            <i class="fas fa-sign-in-alt me-1"></i>立即登录
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

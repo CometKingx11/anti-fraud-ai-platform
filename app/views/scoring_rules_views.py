@@ -59,15 +59,38 @@ def update_weights():
         for question_id, weight in weights.items():
             question = QuestionnaireQuestion.query.get(int(question_id))
             if question:
+                old_weight = question.weight
                 question.weight = float(weight)
                 updated_count += 1
         
         db.session.commit()
+        
+        # 记录操作日志
+        from app.services.audit_service import AuditService
+        from flask_login import current_user
+        AuditService.log_user_action(
+            user=current_user,
+            action_type='UPDATE_SCORING_WEIGHTS',
+            description=f'批量更新评分权重：共{updated_count}个题目',
+            status='success',
+            extra_data={'updated_count': updated_count, 'weights': weights}
+        )
+        
         flash(f'✅ 成功更新 {updated_count} 个题目的权重', 'success')
         return jsonify({'success': True})
     
     except Exception as e:
         db.session.rollback()
+        # 记录错误日志
+        from app.services.audit_service import AuditService
+        from flask_login import current_user
+        AuditService.log_user_action(
+            user=current_user,
+            action_type='UPDATE_SCORING_WEIGHTS',
+            description=f'批量更新评分权重失败：{str(e)}',
+            status='error',
+            extra_data={'error': str(e)}
+        )
         flash(f'❌ 更新失败：{str(e)}', 'danger')
         return jsonify({'success': False, 'error': str(e)}), 400
 
@@ -92,11 +115,32 @@ def update_thresholds():
         QuestionnaireConfig.set_config('threshold_mid', str(threshold_mid), '中风险阈值上限')
         QuestionnaireConfig.set_config('threshold_high', str(threshold_high), '高风险阈值上限')
         
+        # 记录操作日志
+        from app.services.audit_service import AuditService
+        from flask_login import current_user
+        AuditService.log_user_action(
+            user=current_user,
+            action_type='UPDATE_RISK_THRESHOLDS',
+            description=f'更新风险阈值：低={threshold_low}, 中={threshold_mid}, 高={threshold_high}',
+            status='success',
+            extra_data={'threshold_low': threshold_low, 'threshold_mid': threshold_mid, 'threshold_high': threshold_high}
+        )
+        
         flash('✅ 风险阈值更新成功', 'success')
         return redirect(url_for('scoring_rules.index'))
     
     except Exception as e:
         db.session.rollback()
+        # 记录错误日志
+        from app.services.audit_service import AuditService
+        from flask_login import current_user
+        AuditService.log_user_action(
+            user=current_user,
+            action_type='UPDATE_RISK_THRESHOLDS',
+            description=f'更新风险阈值失败：{str(e)}',
+            status='error',
+            extra_data={'error': str(e)}
+        )
         flash(f'❌ 更新失败：{str(e)}', 'danger')
         return redirect(url_for('scoring_rules.index'))
 

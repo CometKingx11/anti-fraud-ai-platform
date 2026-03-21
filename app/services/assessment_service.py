@@ -192,5 +192,48 @@ class AssessmentService:
         submission = Submission(**assessment_data)
         db.session.add(submission)
         db.session.commit()
+        
+        # 【新增】检查是否需要发送风险预警邮件
+        AssessmentService._send_risk_warning_email_if_needed(
+            user_id=user_id,
+            risk_level=assessment_data['risk_level'],
+            total_score=assessment_data['final_score']
+        )
 
         return assessment_data
+    
+    @staticmethod
+    def _send_risk_warning_email_if_needed(user_id, risk_level, total_score):
+        """
+        检查是否需要发送风险预警邮件（高风险/极高风险时发送）
+        
+        Args:
+            user_id (int): 用户 ID
+            risk_level (str): 风险等级
+            total_score (int): 风险总分
+        """
+        try:
+            # 只在高风险或极高风险时发送邮件
+            if risk_level not in ['高风险', '极高风险']:
+                return
+            
+            # 获取用户信息
+            user = User.query.get(user_id)
+            if not user or not user.email:
+                # 用户不存在或没有邮箱，不发送邮件
+                return
+            
+            # 发送邮件
+            from app.services.email_service import EmailService
+            EmailService.send_risk_warning_email(
+                user_email=user.email,
+                user_name=user.name,
+                risk_level=risk_level,
+                total_score=total_score
+            )
+            
+            print(f"✓ 已发送风险预警邮件给 {user.email}（风险等级：{risk_level}）")
+            
+        except Exception as e:
+            # 邮件发送失败不影响主流程，仅记录日志
+            print(f"⚠️ 发送风险预警邮件失败：{str(e)}")

@@ -57,11 +57,34 @@ def create_question():
             db.session.add(question)
             db.session.commit()
             
+            # 记录操作日志
+            from app.services.audit_service import AuditService
+            from flask_login import current_user
+            AuditService.log_user_action(
+                user=current_user,
+                action_type='CREATE_QUESTION',
+                description=f'创建问卷题目：{question.question_text[:50]}...',
+                status='success',
+                target_type='QuestionnaireQuestion',
+                target_id=question.id,
+                extra_data={'question_number': question.question_number, 'category': question.category}
+            )
+            
             flash('题目创建成功', 'success')
             return redirect(url_for('questionnaire_mgmt.question_list'))
             
         except Exception as e:
             db.session.rollback()
+            # 记录错误日志
+            from app.services.audit_service import AuditService
+            from flask_login import current_user
+            AuditService.log_user_action(
+                user=current_user,
+                action_type='CREATE_QUESTION',
+                description=f'创建问卷题目失败：{str(e)}',
+                status='error',
+                extra_data={'error': str(e)}
+            )
             flash(f'创建失败：{str(e)}', 'error')
     
     return render_template('admin/question_form.html', action='create', question=None)
@@ -76,6 +99,7 @@ def edit_question(question_id):
     
     if request.method == 'POST':
         try:
+            old_text = question.question_text
             question.question_number = int(request.form['question_number'])
             question.category = request.form['category']
             question.question_text = request.form['question_text']
@@ -90,14 +114,120 @@ def edit_question(question_id):
             
             db.session.commit()
             
+            # 记录操作日志
+            from app.services.audit_service import AuditService
+            from flask_login import current_user
+            AuditService.log_user_action(
+                user=current_user,
+                action_type='UPDATE_QUESTION',
+                description=f'更新问卷题目：{old_text[:30]}... -> {question.question_text[:30]}...',
+                status='success',
+                target_type='QuestionnaireQuestion',
+                target_id=question.id,
+                extra_data={'question_number': question.question_number}
+            )
+            
             flash('题目更新成功', 'success')
             return redirect(url_for('questionnaire_mgmt.question_list'))
             
         except Exception as e:
             db.session.rollback()
+            # 记录错误日志
+            from app.services.audit_service import AuditService
+            from flask_login import current_user
+            AuditService.log_user_action(
+                user=current_user,
+                action_type='UPDATE_QUESTION',
+                description=f'更新问卷题目失败：{str(e)}',
+                status='error',
+                extra_data={'error': str(e)}
+            )
             flash(f'更新失败：{str(e)}', 'error')
     
     return render_template('admin/question_form.html', action='edit', question=question)
+
+
+@questionnaire_mgmt_bp.route('/import', methods=['GET', 'POST'])
+@login_required
+@role_required('admin')
+def import_questions():
+    """批量导入题目"""
+    if request.method == 'POST':
+        # 检查是否有上传文件
+        if 'file' not in request.files:
+            flash('请选择要上传的文件', 'danger')
+            return redirect(url_for('questionnaire_mgmt.import_questions'))
+        
+        file = request.files['file']
+        
+        if file.filename == '':
+            flash('未选择文件', 'danger')
+            return redirect(url_for('questionnaire_mgmt.import_questions'))
+        
+        # 检查文件扩展名（支持 CSV 和 XLSX）
+        if file and (file.filename.endswith('.csv') or file.filename.endswith('.xlsx')):
+            try:
+                from app.services.batch_question_service import import_questions_from_file
+                import os
+                from werkzeug.utils import secure_filename
+                
+                # 保存上传的文件
+                uploads_dir = os.path.join(os.getcwd(), 'uploads')
+                os.makedirs(uploads_dir, exist_ok=True)
+                filename = secure_filename(file.filename)
+                file_path = os.path.join(uploads_dir, filename)
+                file.save(file_path)
+                
+                # 导入题目
+                result = import_questions_from_file(file_path)
+                
+                # 删除临时文件
+                try:
+                    os.remove(file_path)
+                except:
+                    pass
+                
+                # 记录操作日志
+                from app.services.audit_service import AuditService
+                from flask_login import current_user
+                AuditService.log_user_action(
+                    user=current_user,
+                    action_type='BATCH_IMPORT_QUESTIONS',
+                    description=f'批量导入问卷题目：成功{result["success"]}道，失败{result["failed"]}道',
+                    status='success' if result['success'] > 0 else 'error',
+                    extra_data={'success': result['success'], 'failed': result['failed'], 'filename': filename}
+                )
+                
+                # 显示结果
+                if result['success'] > 0:
+                    flash(f"✅ 成功导入 {result['success']} 道题目", 'success')
+                
+                if result['failed'] > 0:
+                    flash(f"⚠️ 失败 {result['failed']} 道题目", 'warning')
+                    for error in result['errors'][:5]:  # 只显示前 5 个错误
+                        flash(f"  - {error}", 'danger')
+                    
+                    if len(result['errors']) > 5:
+                        flash(f"  ... 还有 {len(result['errors']) - 5} 个错误", 'warning')
+                
+                return redirect(url_for('questionnaire_mgmt.question_list'))
+                
+            except Exception as e:
+                # 记录错误日志
+                from app.services.audit_service import AuditService
+                from flask_login import current_user
+                AuditService.log_user_action(
+                    user=current_user,
+                    action_type='BATCH_IMPORT_QUESTIONS',
+                    description=f'批量导入问卷题目失败：{str(e)}',
+                    status='error',
+                    extra_data={'error': str(e)}
+                )
+                flash(f'导入失败：{str(e)}', 'danger')
+        else:
+            flash('不支持的文件格式，请上传 CSV 或 Excel 文件', 'danger')
+    
+    return render_template('admin/question_import.html')
 
 
 @questionnaire_mgmt_bp.route('/<int:question_id>/delete', methods=['POST'])
@@ -107,12 +237,37 @@ def delete_question(question_id):
     """删除题目"""
     try:
         question = QuestionnaireQuestion.query.get_or_404(question_id)
+        question_text = question.question_text
+        
         db.session.delete(question)
         db.session.commit()
+        
+        # 记录操作日志
+        from app.services.audit_service import AuditService
+        from flask_login import current_user
+        AuditService.log_user_action(
+            user=current_user,
+            action_type='DELETE_QUESTION',
+            description=f'删除问卷题目：{question_text[:50]}...',
+            status='success',
+            target_type='QuestionnaireQuestion',
+            target_id=question_id,
+            extra_data={'question_number': question.question_number}
+        )
         
         flash('题目删除成功', 'success')
     except Exception as e:
         db.session.rollback()
+        # 记录错误日志
+        from app.services.audit_service import AuditService
+        from flask_login import current_user
+        AuditService.log_user_action(
+            user=current_user,
+            action_type='DELETE_QUESTION',
+            description=f'删除问卷题目失败：{str(e)}',
+            status='error',
+            extra_data={'error': str(e)}
+        )
         flash(f'删除失败：{str(e)}', 'error')
     
     return redirect(url_for('questionnaire_mgmt.question_list'))

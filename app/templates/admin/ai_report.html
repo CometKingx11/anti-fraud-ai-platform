@@ -25,32 +25,52 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">风险等级</label>
-                    <select name="risk_level" class="form-select">
-                        <option value="all" {{ 'selected' if risk_level == 'all' }}>全部风险等级</option>
-                        <option value="极高风险" {{ 'selected' if risk_level == '极高风险' }}>⚠️ 极高风险</option>
-                        <option value="高风险" {{ 'selected' if risk_level == '高风险' }}>🔴 高风险</option>
-                        <option value="中风险" {{ 'selected' if risk_level == '中风险' }}>🟡 中风险</option>
-                        <option value="低风险" {{ 'selected' if risk_level == '低风险' }}>🟢 低风险</option>
-                    </select>
+                    <div style="position: relative;">
+                        <select name="risk_level" class="form-select" style="appearance: none; -webkit-appearance: none; -moz-appearance: none; padding-right: 40px;">
+                            <option value="all" {{ 'selected' if risk_level == 'all' }}>全部风险等级</option>
+                            <option value="极高风险" {{ 'selected' if risk_level == '极高风险' }}>⚠️ 极高风险</option>
+                            <option value="高风险" {{ 'selected' if risk_level == '高风险' }}>🔴 高风险</option>
+                            <option value="中风险" {{ 'selected' if risk_level == '中风险' }}>🟡 中风险</option>
+                            <option value="低风险" {{ 'selected' if risk_level == '低风险' }}>🟢 低风险</option>
+                        </select>
+                        <i class="fas fa-chevron-down" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #6B7280; font-size: 12px;"></i>
+                    </div>
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary me-2">
+                    <button type="submit" name="generate" value="1" class="btn btn-primary me-2">
                         <i class="fas fa-sync-alt"></i> 生成报告
                     </button>
-                    <form method="POST" action="{{ url_for('admin.export_ai_report') }}" style="display: inline;">
-                        <input type="hidden" name="start_date" value="{{ start_date }}">
-                        <input type="hidden" name="end_date" value="{{ end_date }}">
-                        <input type="hidden" name="risk_level" value="{{ risk_level }}">
-                        <button type="submit" class="btn btn-success">
-                            <i class="fas fa-download"></i> 导出 PDF
-                        </button>
-                    </form>
+                    <a href="{{ url_for('admin.ai_report') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-redo"></i> 重置
+                    </a>
                 </div>
             </form>
+            <!-- 导出按钮独立出来 -->
+            {% if generate and report %}
+            <form method="POST" action="{{ url_for('admin.export_ai_report') }}" class="d-inline mt-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="start_date" value="{{ start_date }}">
+                <input type="hidden" name="end_date" value="{{ end_date }}">
+                <input type="hidden" name="risk_level" value="{{ risk_level }}">
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-download"></i> 导出 PDF
+                </button>
+            </form>
+            {% endif %}
+            <!-- 清除缓存按钮 -->
+            {% if generate and report %}
+            <form method="POST" action="{{ url_for('admin.clear_ai_report_cache') }}" class="d-inline mt-3 ms-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-outline-warning" onclick="return confirm('确定要清除 AI 报告缓存吗？清除后下次生成将重新调用 AI API。')">
+                    <i class="fas fa-trash-alt"></i> 清除缓存
+                </button>
+            </form>
+            {% endif %}
         </div>
     </div>
 
     <!-- 统计概览卡片 -->
+    {% if generate and report %}
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="card text-white bg-primary">
@@ -85,8 +105,10 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     <!-- 风险等级分布 -->
+    {% if generate and report %}
     <div class="row mb-4">
         <div class="col-md-6">
             <div class="card">
@@ -109,8 +131,10 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     <!-- 维度分析 -->
+    {% if generate and report %}
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
@@ -139,8 +163,10 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     <!-- 高频风险点 TOP10 -->
+    {% if generate and report %}
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
@@ -200,8 +226,10 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     <!-- AI 分析报告 -->
+    {% if generate and report %}
     <div class="row">
         <div class="col-12">
             <div class="card border-primary">
@@ -209,6 +237,15 @@
                     <h5 class="mb-0"><i class="fas fa-robot"></i> AI 智能分析报告</h5>
                 </div>
                 <div class="card-body">
+                    <!-- 缓存信息提示 -->
+                    {% if cache_info and cache_info.cache_size > 0 %}
+                    <div class="alert alert-info alert-dismissible fade show" role="alert">
+                        <i class="fas fa-info-circle"></i> 
+                        <strong>💾 缓存提示：</strong>当前有 {{ cache_info.cache_size }} 份缓存报告，本次可能使用了缓存数据（响应更快）。
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endif %}
+                    
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i> 
                         以下报告由通义千问 AI 大模型基于实际提交数据自动生成
@@ -220,9 +257,70 @@
             </div>
         </div>
     </div>
+    {% else %}
+    <!-- 未生成报告时的提示 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> 使用说明</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-clipboard-list"></i> 如何生成 AI 统计报告？</h5>
+                        <ol class="text-start" style="display: inline-block; text-align: left;">
+                            <li>在上方选择筛选条件</li>
+                            <li>点击 <strong>"生成报告"</strong> 按钮</li>
+                            <li>系统将自动调用 AI 分析数据并生成报告</li>
+                        </ol>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <i class="fas fa-calendar-alt fa-3x text-primary mb-3"></i>
+                                    <h6>日期范围筛选</h6>
+                                    <p class="small text-muted">选择开始和结束日期</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <i class="fas fa-chart-bar fa-3x text-danger mb-3"></i>
+                                    <h6>风险等级筛选</h6>
+                                    <p class="small text-muted">按风险等级过滤数据</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <i class="fas fa-robot fa-3x text-success mb-3"></i>
+                                    <h6>AI 智能分析</h6>
+                                    <p class="small text-muted">通义千问 AI 生成报告</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <i class="fas fa-download fa-3x text-warning mb-3"></i>
+                                    <h6>导出 PDF 报告</h6>
+                                    <p class="small text-muted">下载精美 PDF 报告</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <!-- ECharts 图表脚本 -->
+{% if generate and report %}
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 <script>
 // 风险等级分布图
@@ -301,18 +399,171 @@ window.addEventListener('resize', function() {
     trendChart.resize();
 });
 </script>
+{% endif %}
 
 <style>
 .report-content {
-    font-family: 'Microsoft YaHei', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
     font-size: 14px;
     padding: 20px;
-    background-color: #f8f9fa;
-    border-radius: 5px;
+    background: #F9FAFB;
+    border-radius: 8px;
+    line-height: 1.6;
 }
 
 .card {
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s ease;
+    border: 1px solid #E5E7EB;
+}
+
+.card:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* 统计卡片颜色 */
+.bg-primary {
+    background: #4B5563 !important;
+}
+
+.bg-success {
+    background: #10B981 !important;
+}
+
+.bg-info {
+    background: #3B82F6 !important;
+}
+
+.bg-warning {
+    background: #F59E0B !important;
+}
+
+.bg-danger {
+    background: #EF4444 !important;
+}
+
+/* 卡片标题 */
+.card-header h5 {
+    font-weight: 600;
+}
+
+/* 数字展示 */
+h2.mb-0 {
+    font-size: 2rem;
+    font-weight: 600;
+}
+
+/* 图表容器 */
+canvas {
+    border-radius: 6px;
+}
+
+/* 进度条美化 */
+.progress {
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+    background: #F3F4F6;
+}
+
+.progress-bar {
+    border-radius: 6px;
+    transition: width 0.6s ease;
+}
+
+/* 表格美化 */
+.table {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* 徽章美化 */
+.badge {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    font-weight: 500;
+}
+
+/* 按钮组 */
+.btn-group .btn {
+    margin: 0 2px;
+    border-radius: 6px !important;
+}
+
+/* 表单元素 */
+.form-control,
+.form-select {
+    border-radius: 6px;
+    border: 1px solid #D1D5DB;
+    transition: all 0.2s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #9CA3AF;
+    box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.1);
+}
+
+/* 警告框 */
+.alert {
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* 功能卡片 */
+.card.bg-light {
+    transition: all 0.2s ease;
+    border: 1px solid #E5E7EB;
+}
+
+.card.bg-light:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-color: #D1D5DB;
+}
+
+/* 图标 */
+.fa-3x {
+    transition: all 0.2s ease;
+}
+
+.card.bg-light:hover .fa-3x {
+    transform: scale(1.1);
+}
+
+/* 分页 */
+.pagination .page-link {
+    border-radius: 6px;
+    margin: 0 3px;
+    border: 1px solid #D1D5DB;
+    color: #4B5563;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.pagination .page-link:hover {
+    background: #F3F4F6;
+    border-color: #9CA3AF;
+    color: #1F2937;
+}
+
+.pagination .page-item.active .page-link {
+    background: #4B5563;
+    border-color: #4B5563;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* 动画效果 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card {
+    animation: fadeInUp 0.5s ease-out;
 }
 </style>
 {% endblock %}

@@ -1,7 +1,7 @@
 # Author: 小土豆 233
 # Date: 2026-03-16 23:42:18
 # LastEditTime: 2026-03-16 23:42:27
-# LastEditors: 小土豆 233
+# LastEditors: Curry
 # Description: PDF 服务，处理评估报告的 PDF 导出功能
 # FilePath: flask_anti_project\app\services\pdf_service.py
 
@@ -77,6 +77,22 @@ class PDFService:
         # 添加标题
         elements.append(Paragraph("大学生反诈风险评估报告", title_style))
         elements.append(Spacer(1, 24))
+        
+        # 用户信息和时间
+        info_table = Table([
+            ['学号：', assessment_data.get('student_id', '未知'), '姓名：', assessment_data.get('name', '未知')],
+            ['评估时间：', assessment_data.get('submitted_at', '未知'), '', '']
+        ], colWidths=[0.8*inch, 2.5*inch, 0.8*inch, 2.5*inch])
+        info_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('FONTNAME', (0, 0), (-1, -1), font_name),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        elements.append(info_table)
+        elements.append(Spacer(1, 16))
         
         # 风险等级
         elements.append(

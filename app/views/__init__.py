@@ -9,5 +9,6 @@ from app.views.report_views import report_bp
 from app.views.admin_views import admin_bp
 from app.views.questionnaire_mgmt_views import questionnaire_mgmt_bp
 from app.views.scoring_rules_views import scoring_rules_bp
+from app.views.audit_views import audit_bp
 
-__all__ = ['auth_bp', 'questionnaire_bp', 'report_bp', 'admin_bp', 'questionnaire_mgmt_bp', 'scoring_rules_bp']
+__all__ = ['auth_bp', 'questionnaire_bp', 'report_bp', 'admin_bp', 'questionnaire_mgmt_bp', 'scoring_rules_bp', 'audit_bp']

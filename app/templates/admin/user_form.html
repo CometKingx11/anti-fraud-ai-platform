@@ -40,7 +40,10 @@
                         <div class="mb-3">
                             <label for="email" class="form-label">邮箱</label>
                             <input type="email" class="form-control" id="email" name="email" 
-                                   value="{{ user.email if user else '' }}" placeholder="请输入邮箱地址">
+                                   value="{{ user.email if user else '' }}" placeholder="example@qq.com">
+                            <small class="form-text text-muted">
+                                <strong>💡 推荐：</strong>使用 QQ 邮箱，<a href="https://mail.qq.com" target="_blank" rel="noopener" class="text-decoration-none">立即注册</a>
+                            </small>
                         </div>
 
                         <!-- 角色选择 -->

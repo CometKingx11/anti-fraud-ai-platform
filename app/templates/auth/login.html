@@ -19,6 +19,7 @@
             </div>
             <div class="card-body p-4">
                 <form method="post">
+                    {{ form.hidden_tag() if form else '' }}
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="mb-3">
                         <label class="form-label">学号</label>
@@ -31,8 +32,14 @@
                     <button type="submit" class="btn btn-primary w-100">登录</button>
                 </form>
             </div>
-            <div class="card-footer text-center text-muted">
-                学生账号请联系管理员开通
+            <div class="card-footer text-center">
+                <p class="mb-2 text-muted">
+                    还没有账号？
+                    <a href="{{ url_for('auth.register') }}" class="text-decoration-none fw-bold">
+                        <i class="fas fa-user-plus me-1"></i>立即注册
+                    </a>
+                </p>
+                <small class="text-muted">学生自助注册后请联系管理员审核激活</small>
             </div>
         </div>
     </div>

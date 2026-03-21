@@ -4,12 +4,16 @@ AI 统计报告服务
 """
 
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import current_app
 from dashscope import Generation
 from app.models.submission import Submission
 from app.models.user import User
 from sqlalchemy import func
+
+# 缓存字典：{缓存键：{'report': 报告内容，'time': 缓存时间}}
+_report_cache = {}
+_CACHE_DURATION = timedelta(hours=1)  # 缓存 1 小时
 
 
 class AIReportService:
@@ -17,6 +21,21 @@ class AIReportService:
     AI 统计报告服务类
     负责统计所有用户提交数据并生成 AI 分析报告
     """
+    
+    @staticmethod
+    def clear_cache():
+        """清除所有缓存的报告"""
+        global _report_cache
+        _report_cache = {}
+        print("已清除所有 AI 报告缓存")
+    
+    @staticmethod
+    def get_cache_info():
+        """获取缓存信息"""
+        return {
+            'cache_size': len(_report_cache),
+            'cache_keys': list(_report_cache.keys())
+        }
 
     def generate_statistical_report(self, start_date=None, end_date=None, risk_level=None):
         """
@@ -30,6 +49,16 @@ class AIReportService:
         Returns:
             dict: 统计数据和 AI 分析报告
         """
+        # 生成缓存键
+        cache_key = f"{start_date}_{end_date}_{risk_level}"
+        
+        # 检查缓存是否有效
+        if cache_key in _report_cache:
+            cached_data = _report_cache[cache_key]
+            if datetime.now() - cached_data['time'] < _CACHE_DURATION:
+                print(f"使用缓存的报告（缓存键：{cache_key}）")
+                return cached_data['report']
+        
         # 1. 收集统计数据
         statistics = self._collect_statistics(start_date, end_date, risk_level)
         
@@ -42,6 +71,13 @@ class AIReportService:
             'ai_analysis': ai_analysis,
             'generated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
+        
+        # 4. 保存到缓存
+        _report_cache[cache_key] = {
+            'report': report,
+            'time': datetime.now()
+        }
+        print(f"生成新的报告并缓存（缓存键：{cache_key}）")
         
         return report
 

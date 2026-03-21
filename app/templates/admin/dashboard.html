@@ -10,12 +10,204 @@
 
 {% block title %}管理员后台 - 反诈风险评估平台{% endblock %}
 
+{% block extra_styles %}
+<style>
+/* 下拉箭头样式 */
+.dropdown-toggle::after {
+    margin-left: 0.5rem;
+    vertical-align: middle;
+    border-top: 0.3em solid;
+    border-right: 0.3em solid transparent;
+    border-bottom: 0;
+    border-left: 0.3em solid transparent;
+    transition: transform 0.2s ease;
+    opacity: 0.6;
+}
+
+.dropdown-toggle:hover::after {
+    opacity: 1;
+}
+
+.btn-group.show .dropdown-toggle::after {
+    transform: rotate(180deg);
+    opacity: 1;
+}
+
+/* 下拉菜单样式 */
+.dropdown-menu {
+    border-radius: 8px;
+    border: 1px solid #E5E7EB;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+    min-width: 180px;
+    max-width: 220px;
+    animation: slideDown 0.2s ease;
+    background: #FFFFFF;
+    z-index: 9999 !important;
+}
+
+.dropdown-menu.show {
+    display: block !important;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dropdown-item {
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    margin: 0.25rem 0;
+    transition: var(--transition);
+    color: #374151;
+    font-weight: 500;
+}
+
+.dropdown-item:hover {
+    background: var(--primary-bg);
+    color: var(--primary-color);
+}
+
+.dropdown-item.active {
+    background: var(--primary-bg);
+    color: var(--primary-color);
+}
+
+.dropdown-item i {
+    margin-right: 0.5rem;
+    width: 1.2rem;
+    text-align: center;
+}
+
+.dropdown-divider {
+    border-top: 1px solid #E5E7EB;
+    margin: 0.5rem 0;
+}
+
+/* 按钮激活状态 */
+.btn-outline-secondary.active,
+.btn-outline-secondary:active {
+    background: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: #FFFFFF !important;
+}
+
+/* 分页样式 */
+.pagination .page-link {
+    color: var(--primary-color);
+    border-radius: 6px;
+    margin: 0 2px;
+    border: 1px solid #dee2e6;
+    transition: var(--transition);
+}
+
+.pagination .page-link:hover {
+    background: var(--primary-bg);
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.pagination .page-item.active .page-link {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #FFFFFF;
+}
+
+.pagination .page-item.disabled .page-link {
+    color: #6c757d;
+    pointer-events: none;
+    background: #f8f9fa;
+    border-color: #dee2e6;
+}
+
+/* 每页显示下拉按钮样式 */
+#per_page_dropdown {
+    padding: 0.375rem 1.75rem 0.375rem 0.75rem;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    transition: var(--transition);
+}
+
+#per_page_dropdown:hover {
+    background-color: var(--primary-bg);
+    border-color: var(--primary-color);
+}
+
+#per_page_dropdown.show {
+    background-color: var(--primary-bg);
+    border-color: var(--primary-color);
+}
+
+/* 时间筛选卡片样式 */
+.card.bg-light .btn-group .btn-outline-primary.active,
+.card.bg-light .btn-group .btn-outline-secondary.active {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: #FFFFFF !important;
+}
+
+.card.bg-light .form-control:focus,
+.card.bg-light .input-group-text {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.card.bg-light {
+    border: 1px solid #dee2e6;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* 日期时间输入框装饰性滚动条 */
+.datetime-input-with-scrollbar {
+    /* 装饰性滚动条样式 */
+}
+
+.datetime-input-with-scrollbar::-webkit-calendar-picker-indicator {
+    margin-right: 2px;
+}
+
+/* 滚动条轨道 */
+input[type="datetime-local"].datetime-input-with-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+/* 滚动条滑块 */
+input[type="datetime-local"].datetime-input-with-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #c1c1c1;
+    border-radius: 3px;
+    min-height: 20px;
+}
+
+input[type="datetime-local"].datetime-input-with-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: #a8a8a8;
+}
+
+input[type="datetime-local"].datetime-input-with-scrollbar::-webkit-scrollbar-track {
+    background-color: #f1f1f1;
+    border-radius: 3px;
+    margin: 2px;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <h2 class="mb-4 text-center">管理员后台</h2>
 
 <!-- 统计卡片 -->
 <div class="row mb-4">
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card text-white bg-primary">
             <div class="card-body text-center">
                 <h5 class="card-title"><i class="fas fa-users"></i> 学生总数</h5>
@@ -23,7 +215,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card text-white bg-success">
             <div class="card-body text-center">
                 <h5 class="card-title"><i class="fas fa-file-alt"></i> 总提交次数</h5>
@@ -31,11 +223,20 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card text-white bg-danger">
             <div class="card-body text-center">
                 <h5 class="card-title"><i class="fas fa-exclamation-triangle"></i> 高风险记录</h5>
                 <h2 class="mb-0">{{ high_risk_count }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body text-center">
+                <h5 class="card-title"><i class="fas fa-shield-alt"></i> 未处理安全事件</h5>
+                <h2 class="mb-0">{{ unhandled_security_events|default(0) }}</h2>
+                <small><a href="{{ url_for('audit.security_logs') }}" class="text-white">查看处理</a></small>
             </div>
         </div>
     </div>
@@ -44,7 +245,114 @@
 <!-- 高风险用户 TOP10 -->
 {% if high_risk_users %}
 <div class="row mb-4">
-    <div class="col-12">
+    <!-- 左侧筛选边栏 -->
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-filter"></i> 筛选条件</h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('admin.dashboard') }}">
+                    <!-- 风险等级筛选 -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-shield-alt"></i> 风险等级
+                        </label>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle w-100" 
+                                    type="button" 
+                                    data-bs-toggle="dropdown" 
+                                    aria-expanded="false">
+                                <span id="risk-label">
+                                    {% if current_risk == 'all' %}全部风险等级
+                                    {% elif current_risk == '极高风险' %}⚠️ 极高风险
+                                    {% elif current_risk == '高风险' %}🔴 高风险
+                                    {% elif current_risk == '中风险' %}🟡 中风险
+                                    {% elif current_risk == '低风险' %}🟢 低风险
+                                    {% else %}全部风险等级{% endif %}
+                                </span>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="?risk_level=all&sort={{ current_sort }}&order={{ current_order }}">全部风险等级</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="?risk_level=极高风险&sort={{ current_sort }}&order={{ current_order }}">⚠️ 极高风险</a></li>
+                                <li><a class="dropdown-item" href="?risk_level=高风险&sort={{ current_sort }}&order={{ current_order }}">🔴 高风险</a></li>
+                                <li><a class="dropdown-item" href="?risk_level=中风险&sort={{ current_sort }}&order={{ current_order }}">🟡 中风险</a></li>
+                                <li><a class="dropdown-item" href="?risk_level=低风险&sort={{ current_sort }}&order={{ current_order }}">🟢 低风险</a></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- 排序方式 -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-sort"></i> 排序方式
+                        </label>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle w-100" 
+                                    type="button" 
+                                    data-bs-toggle="dropdown" 
+                                    aria-expanded="false">
+                                <span id="sort-label">
+                                    {% if current_sort == 'submitted_at' %}按提交时间
+                                    {% elif current_sort == 'final_score' %}按最终分数
+                                    {% elif current_sort == 'submit_count' %}按提交次数
+                                    {% else %}按提交时间{% endif %}
+                                </span>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="?risk_level={{ current_risk if current_risk != 'all' else 'all' }}&sort=submitted_at&order={{ current_order }}">按提交时间</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="?risk_level={{ current_risk if current_risk != 'all' else 'all' }}&sort=final_score&order={{ current_order }}">按最终分数</a></li>
+                                <li><a class="dropdown-item" href="?risk_level={{ current_risk if current_risk != 'all' else 'all' }}&sort=submit_count&order={{ current_order }}">按提交次数</a></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- 排序顺序 -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-arrow-up-wide-short"></i> 排序顺序
+                        </label>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle w-100" 
+                                    type="button" 
+                                    data-bs-toggle="dropdown" 
+                                    aria-expanded="false">
+                                <span id="order-label">
+                                    {% if current_order == 'desc' %}⬇️ 降序
+                                    {% elif current_order == 'asc' %}⬆️ 升序
+                                    {% else %}⬇️ 降序{% endif %}
+                                </span>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="?risk_level={{ current_risk if current_risk != 'all' else 'all' }}&sort={{ current_sort }}&order=desc">⬇️ 降序</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="?risk_level={{ current_risk if current_risk != 'all' else 'all' }}&sort={{ current_sort }}&order=asc">⬆️ 升序</a></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- 清除筛选按钮 -->
+                    {% if current_risk != 'all' or current_sort != 'submitted_at' %}
+                    <hr>
+                    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-times"></i> 清除筛选
+                    </a>
+                    {% endif %}
+                </form>
+            </div>
+            <div class="card-footer bg-light">
+                <small class="text-muted">
+                    <i class="fas fa-info-circle"></i> 
+                    筛选条件用于控制下方“所有提交记录”的显示内容
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右侧高风险表格 -->
+    <div class="col-md-9">
         <div class="card border-danger">
             <div class="card-header bg-danger text-white">
                 <h5 class="mb-0"><i class="fas fa-crown"></i> ⚠️ 高风险用户 TOP10</h5>
@@ -84,115 +392,161 @@
 </div>
 {% endif %}
 
-<!-- 快捷功能卡片 -->
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card text-white bg-primary">
-            <div class="card-body">
-                <h5 class="card-title">用户管理</h5>
-                <p class="card-text">管理系统中的所有用户账号</p>
-                <a href="{{ url_for('admin.users') }}" class="btn btn-light">进入</a>
-            </div>
-        </div>
+<!-- 所有提交记录 -->
+<div class="card">
+    <div class="card-header">
+        <h4 class="mb-0">
+            <i class="fas fa-list"></i> 所有提交记录
+            {% if current_risk != 'all' %}
+            <span class="badge bg-danger ms-2">已筛选：{{ current_risk }}</span>
+            {% endif %}
+        </h4>
     </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-success">
-            <div class="card-body">
-                <h5 class="card-title">AI 统计报告</h5>
-                <p class="card-text">查看 AI 生成的整体统计分析报告</p>
-                <a href="{{ url_for('admin.ai_report') }}" class="btn btn-light">进入</a>
+    <div class="card-body">
+        <!-- 搜索和批量操作工具栏 -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectAll()">
+                        <i class="fas fa-check-square"></i> 全选
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAll()">
+                        <i class="fas fa-square"></i> 取消全选
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteSelected()">
+                        <i class="fas fa-trash"></i> 批量删除
+                    </button>
+                </div>
+                <span id="selected-count" class="ms-3 text-muted">已选择 <strong>0</strong> 条记录</span>
             </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-info">
-            <div class="card-body">
-                <h5 class="card-title">数据导出</h5>
-                <p class="card-text">导出评估数据和报告</p>
-                <a href="{{ url_for('admin.export') }}" class="btn btn-light">进入</a>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-warning">
-            <div class="card-body">
-                <h5 class="card-title">问卷首页</h5>
-                <p class="card-text">查看学生提交的问卷</p>
-                <a href="{{ url_for('questionnaire.index') }}" class="btn btn-light">进入</a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 筛选和排序工具栏 -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                <form method="GET" action="{{ url_for('admin.dashboard') }}" class="row g-3 align-items-center">
+            <div class="col-md-6">
+                <form method="GET" action="{{ url_for('admin.dashboard') }}" class="row g-2">
                     <div class="col-auto">
-                        <label class="form-label fw-bold">
-                            <i class="fas fa-filter"></i> 风险等级筛选：
-                        </label>
+                        <input type="text" name="search" class="form-control form-control-sm" 
+                               placeholder="搜索学号或姓名" value="{{ search_keyword }}" 
+                               style="min-width: 200px;">
                     </div>
-                    <div class="col-md-2">
-                        <select name="risk_level" class="form-select" onchange="this.form.submit()">
-                            <option value="all" {{ 'selected' if current_risk == 'all' }}>全部风险等级</option>
-                            <option value="极高风险" {{ 'selected' if current_risk == '极高风险' }}>⚠️ 极高风险</option>
-                            <option value="高风险" {{ 'selected' if current_risk == '高风险' }}>🔴 高风险</option>
-                            <option value="中风险" {{ 'selected' if current_risk == '中风险' }}>🟡 中风险</option>
-                            <option value="低风险" {{ 'selected' if current_risk == '低风险' }}>🟢 低风险</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <select name="sort" class="form-select" onchange="this.form.submit()">
-                            <option value="submitted_at" {{ 'selected' if current_sort == 'submitted_at' }}>按提交时间</option>
-                            <option value="final_score" {{ 'selected' if current_sort == 'final_score' }}>按最终分数</option>
-                            <option value="submit_count" {{ 'selected' if current_sort == 'submit_count' }}>按提交次数</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <select name="order" class="form-select" onchange="this.form.submit()">
-                            <option value="desc" {{ 'selected' if current_order == 'desc' }}>⬇️ 降序</option>
-                            <option value="asc" {{ 'selected' if current_order == 'asc' }}>⬆️ 升序</option>
-                        </select>
-                    </div>
-                    {% if current_risk != 'all' or current_sort != 'submitted_at' %}
                     <div class="col-auto">
-                        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">
-                            <i class="fas fa-times"></i> 清除筛选
+                        <button type="submit" class="btn btn-sm btn-primary">
+                            <i class="fas fa-search"></i> 搜索
+                        </button>
+                        {% if search_keyword %}
+                        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-times"></i> 清除
                         </a>
+                        {% endif %}
                     </div>
-                    {% endif %}
                 </form>
             </div>
         </div>
-    </div>
-</div>
-
-<h4 class="mt-4">
-    <i class="fas fa-list"></i> 所有提交记录
-    {% if current_risk != 'all' %}
-    <span class="badge bg-danger ms-2">已筛选：{{ current_risk }}</span>
-    {% endif %}
-</h4>
-
-<!-- 批量操作工具栏 -->
-<div class="row mb-3 mt-3">
-    <div class="col-12">
-        <div class="btn-group" role="group">
-            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectAll()">
-                <i class="fas fa-check-square"></i> 全选
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAll()">
-                <i class="fas fa-square"></i> 取消全选
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteSelected()">
-                <i class="fas fa-trash"></i> 批量删除
-            </button>
+        
+        <!-- 时间筛选工具栏 -->
+        <div class="row mb-3 align-items-center">
+            <div class="col-12">
+                <div class="card bg-light">
+                    <div class="card-body py-2">
+                        <form method="GET" action="{{ url_for('admin.dashboard') }}" id="date-filter-form">
+                            <div class="row align-items-center g-2">
+                                <div class="col-auto">
+                                    <label class="fw-bold mb-0">
+                                        <i class="fas fa-calendar-alt"></i> 时间筛选：
+                                    </label>
+                                </div>
+                                <div class="col-auto">
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary {% if date_filter_type == 'before' %}active{% endif %}" 
+                                                onclick="setDateFilterType('before')">
+                                            <i class="fas fa-arrow-left"></i> 在此时间之前
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary {% if date_filter_type == 'after' %}active{% endif %}" 
+                                                onclick="setDateFilterType('after')">
+                                            <i class="fas fa-arrow-right"></i> 在此时间之后
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary {% if date_filter_type == 'between' or date_filter_type == 'custom' %}active{% endif %}" 
+                                                onclick="setDateFilterType('between')">
+                                            <i class="fas fa-arrows-alt-h"></i> 时间之间
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-auto" id="single-date-input" style="{% if date_filter_type != 'before' and date_filter_type != 'after' %}display: none;{% endif %}">
+                                    <input type="datetime-local" id="single_date" class="form-control form-control-sm datetime-input-with-scrollbar" 
+                                           style="min-width: 200px;" 
+                                           value="{{ start_date[:-3] if start_date and (date_filter_type == 'before' or date_filter_type == 'after') else '' }}">
+                                </div>
+                                <div class="col-auto" id="range-date-inputs" style="{% if date_filter_type != 'between' and date_filter_type != 'custom' %}display: none;{% endif %}">
+                                    <div class="input-group input-group-sm" style="width: 420px;">
+                                        <input type="datetime-local" id="start_date" class="form-control datetime-input-with-scrollbar" 
+                                               placeholder="开始时间" 
+                                               value="{{ start_date[:-3] if start_date and date_filter_type == 'between' else '' }}">
+                                        <span class="input-group-text">~</span>
+                                        <input type="datetime-local" id="end_date" class="form-control datetime-input-with-scrollbar" 
+                                               placeholder="结束时间" 
+                                               value="{{ end_date[:-3] if end_date and date_filter_type == 'between' else '' }}">
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <button type="button" class="btn btn-sm btn-success" onclick="applyDateFilter()">
+                                        <i class="fas fa-check"></i> 应用
+                                    </button>
+                                    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-redo"></i> 清除
+                                    </a>
+                                </div>
+                            </div>
+                            <!-- 隐藏字段，用于表单提交 -->
+                            <input type="hidden" name="date_filter_type" id="date_filter_type_hidden" value="{{ date_filter_type }}">
+                            <input type="hidden" name="start_date" id="start_date_hidden" value="{{ start_date }}">
+                            <input type="hidden" name="end_date" id="end_date_hidden" value="{{ end_date }}">
+                            <!-- 保留其他筛选条件 -->
+                            <input type="hidden" name="search" value="{{ search_keyword }}">
+                            <input type="hidden" name="risk_level" value="{{ current_risk }}">
+                            <input type="hidden" name="sort" value="{{ current_sort }}">
+                            <input type="hidden" name="order" value="{{ current_order }}">
+                            <input type="hidden" name="per_page" value="{{ per_page }}">
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
-        <span id="selected-count" class="ms-3 text-muted">已选择 <strong>0</strong> 条记录</span>
-    </div>
+        
+        <!-- 每页显示条数控制 -->
+        <div class="row mb-3 align-items-center">
+            <div class="col-md-6">
+                <small class="text-muted">
+                    共 <strong>{{ pagination.total }}</strong> 条记录，当前第 <strong>{{ pagination.page }}</strong> 页，共 <strong>{{ pagination.pages }}</strong> 页
+                </small>
+            </div>
+            <div class="col-md-6 text-end">
+                <form method="GET" action="{{ url_for('admin.dashboard') }}" class="d-inline">
+                    <!-- 保留所有筛选条件 -->
+                    {% if search_keyword %}
+                    <input type="hidden" name="search" value="{{ search_keyword }}">
+                    {% endif %}
+                    {% if current_risk and current_risk != 'all' %}
+                    <input type="hidden" name="risk_level" value="{{ current_risk }}">
+                    {% endif %}
+                    <input type="hidden" name="sort" value="{{ current_sort }}">
+                    <input type="hidden" name="order" value="{{ current_order }}">
+                    
+                    <label for="per_page" class="me-2">每页显示：</label>
+                    <div class="dropdown d-inline-block">
+                        <button class="btn btn-outline-secondary dropdown-toggle form-select form-select-sm" 
+                                type="button" 
+                                data-bs-toggle="dropdown" 
+                                aria-expanded="false"
+                                id="per_page_dropdown">
+                            <span id="per_page_label">{% if per_page == 10 %}10 条{% elif per_page == 20 %}20 条{% elif per_page == 50 %}50 条{% elif per_page == 100 %}100 条{% else %}20 条{% endif %}</span>
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="per_page_dropdown">
+                            <li><a class="dropdown-item" href="#" onclick="selectPerPage(10); return false;">10 条</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="selectPerPage(20); return false;">20 条</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="selectPerPage(50); return false;">50 条</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="selectPerPage(100); return false;">100 条</a></li>
+                        </ul>
+                    </div>
+                </form>
+            </div>
+        </div>
 </div>
 
 <table class="table table-striped table-hover">
@@ -269,12 +623,154 @@
     </tbody>
 </table>
 
+<!-- 分页导航 -->
+<nav aria-label="Page navigation" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% set base_params = {'per_page': per_page, 'search': search_keyword, 'risk_level': current_risk, 'sort': current_sort, 'order': current_order, 'date_filter_type': date_filter_type, 'start_date': start_date, 'end_date': end_date} %}
+        
+        <!-- 首页按钮 -->
+        <li class="page-item {% if pagination.page == 1 %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('admin.dashboard', page=1, **base_params) }}" aria-label="首页">
+                <i class="fas fa-angle-double-left"></i> 首页
+            </a>
+        </li>
+        
+        <!-- 上一页按钮 -->
+        <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('admin.dashboard', page=pagination.prev_num, **base_params) }}" aria-label="上一页">
+                <i class="fas fa-angle-left"></i> 上一页
+            </a>
+        </li>
+        
+        <!-- 页码列表 -->
+        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if page_num %}
+                {% if page_num == pagination.page %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_num }}</span>
+                    </li>
+                {% else %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.dashboard', page=page_num, **base_params) }}">{{ page_num }}</a>
+                    </li>
+                {% endif %}
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+            {% endif %}
+        {% endfor %}
+        
+        <!-- 下一页按钮 -->
+        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('admin.dashboard', page=pagination.next_num, **base_params) }}" aria-label="下一页">
+                下一页 <i class="fas fa-angle-right"></i>
+            </a>
+        </li>
+        
+        <!-- 末页按钮 -->
+        <li class="page-item {% if pagination.page == pagination.pages %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('admin.dashboard', page=pagination.pages, **base_params) }}" aria-label="末页">
+                末页 <i class="fas fa-angle-double-right"></i>
+            </a>
+        </li>
+    </ul>
+</nav>
+
+<div class="text-center mb-3">
+    <small class="text-muted">
+        显示第 {{ ((pagination.page - 1) * per_page) + 1 }} - {{ [pagination.page * per_page, pagination.total]|min }} 条，共 {{ pagination.total }} 条记录
+    </small>
+</div>
+    </div>
+</div>
+</div>
+
 <!-- 批量删除表单 -->
 <form id="delete-form" method="POST" style="display: none;">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 </form>
 
 <script>
+// 设置日期筛选类型
+function setDateFilterType(type) {
+    document.getElementById('date_filter_type_hidden').value = type;
+    
+    // 更新按钮状态
+    const buttons = document.querySelectorAll('[onclick^="setDateFilterType"]');
+    buttons.forEach(btn => btn.classList.remove('active'));
+    event.target.closest('button').classList.add('active');
+    
+    // 显示对应的输入框
+    const singleDateInput = document.getElementById('single-date-input');
+    const rangeDateInputs = document.getElementById('range-date-inputs');
+    
+    if (type === 'before' || type === 'after') {
+        singleDateInput.style.display = 'block';
+        rangeDateInputs.style.display = 'none';
+    } else if (type === 'between') {
+        singleDateInput.style.display = 'none';
+        rangeDateInputs.style.display = 'block';
+    }
+}
+
+// 应用日期筛选
+function applyDateFilter() {
+    const filterType = document.getElementById('date_filter_type_hidden').value;
+    const startDateHidden = document.getElementById('start_date_hidden');
+    const endDateHidden = document.getElementById('end_date_hidden');
+    
+    if (filterType === 'before' || filterType === 'after') {
+        const singleDate = document.getElementById('single_date').value;
+        startDateHidden.value = singleDate ? singleDate.replace('T', ' ') + ':00' : '';
+        endDateHidden.value = '';
+    } else if (filterType === 'between') {
+        const startDate = document.getElementById('start_date').value;
+        const endDate = document.getElementById('end_date').value;
+        startDateHidden.value = startDate ? startDate.replace('T', ' ') + ':00' : '';
+        endDateHidden.value = endDate ? endDate.replace('T', ' ') + ':00' : '';
+    }
+    
+    // 提交表单
+    document.getElementById('date-filter-form').submit();
+}
+
+// 选择每页显示条数
+function selectPerPage(value) {
+    // 更新标签文本
+    document.getElementById('per_page_label').textContent = value + '条';
+    
+    // 创建表单并提交
+    const form = document.createElement('form');
+    form.method = 'GET';
+    form.action = '{{ url_for("admin.dashboard") }}';
+    
+    // 添加所有筛选参数
+    const params = {
+        per_page: value,
+        search: '{{ search_keyword }}',
+        risk_level: '{{ current_risk }}',
+        sort: '{{ current_sort }}',
+        order: '{{ current_order }}',
+        date_filter_type: '{{ date_filter_type }}',
+        start_date: '{{ start_date }}',
+        end_date: '{{ end_date }}'
+    };
+    
+    for (const [key, val] of Object.entries(params)) {
+        if (val && val !== 'None' && val !== '') {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = val;
+            form.appendChild(input);
+        }
+    }
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+
 // 全选/取消全选
 function toggleSelectAll() {
     const selectAllCheckbox = document.getElementById('select-all');

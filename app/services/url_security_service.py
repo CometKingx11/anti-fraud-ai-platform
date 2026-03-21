@@ -1,4 +1,4 @@
-# Author: 小土豆233
+# Author: 小土豆 233
 # Date: 2026-03-18
 # Description: URL 安全检测服务 - 检测风险链接
 # FilePath: flask_anti_project\app\services\url_security_service.py
@@ -7,6 +7,8 @@ from flask import current_app
 import requests
 import re
 import json
+import time
+from app.services.audit_service import AuditService
 
 
 class URLSecurityService:
@@ -29,6 +31,159 @@ class URLSecurityService:
         url_pattern = r'https?://[^\s<>"{}|\\^`\[\]]+'
         urls = re.findall(url_pattern, text)
         return urls
+    
+    @staticmethod
+    def check_url_virustotal(url: str) -> dict:
+        """
+        VirusTotal - URL 安全检测 API
+        
+        文档：https://docs.virustotal.com/reference/url-info
+        
+        Args:
+            url: 待检测的 URL
+            
+        Returns:
+            检测结果字典
+        """
+        try:
+            api_key = current_app.config.get('VIRUSTOTAL_API_KEY')
+            if not api_key:
+                return {
+                    'success': False,
+                    'is_risk': False,
+                    'risk_level': 'unknown',
+                    'message': '未配置 VirusTotal API Key',
+                    'source': 'VirusTotal'
+                }
+            
+            # 1. 对 URL 进行编码（VirusTotal 要求）
+            import base64
+            url_encoded = base64.urlsafe_b64encode(url.encode()).decode().strip('=')
+            
+            # 2. 调用 VirusTotal API v3
+            headers = {
+                'x-apikey': api_key,
+                'Accept': 'application/json'
+            }
+            
+            response = requests.get(
+                f'https://www.virustotal.com/api/v3/urls/{url_encoded}',
+                headers=headers,
+                timeout=10
+            )
+            
+            if response.status_code == 404:
+                # URL 未被分析过，需要提交分析
+                return URLSecurityService._submit_url_to_virustotal(url, api_key)
+            
+            if response.status_code != 200:
+                return {
+                    'success': False,
+                    'is_risk': False,
+                    'risk_level': 'unknown',
+                    'message': f'VirusTotal API 错误：{response.status_code}',
+                    'source': 'VirusTotal'
+                }
+            
+            data = response.json()
+            
+            # 3. 解析结果
+            attributes = data.get('data', {}).get('attributes', {})
+            stats = attributes.get('last_analysis_stats', {})
+            
+            # 恶意引擎数量
+            malicious = stats.get('malicious', 0)
+            suspicious = stats.get('suspicious', 0)
+            harmless = stats.get('harmless', 0)
+            
+            # 4. 判断风险
+            is_risk = malicious >= 5 or suspicious >= 3
+            
+            # 5. 计算风险等级（0-5）
+            total = malicious + suspicious + harmless
+            if total > 0:
+                risk_ratio = (malicious * 2 + suspicious) / (total * 2)
+                risk_level = min(5, int(risk_ratio * 5))
+            else:
+                risk_level = 0
+            
+            # 6. 构建返回结果
+            return {
+                'success': True,
+                'is_risk': is_risk,
+                'risk_level': risk_level,
+                'risk_type': '恶意网站' if malicious > 0 else '可疑网站' if suspicious > 0 else '',
+                'description': f'VirusTotal: {malicious}个引擎标记为恶意，{suspicious}个标记为可疑',
+                'source': 'VirusTotal',
+                'stats': stats  # 保留详细统计信息
+            }
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'is_risk': False,
+                'risk_level': 'unknown',
+                'message': f'VirusTotal 检测异常：{str(e)}',
+                'source': 'VirusTotal'
+            }
+    
+    @staticmethod
+    def _submit_url_to_virustotal(url: str, api_key: str) -> dict:
+        """
+        提交 URL 到 VirusTotal 进行分析
+        
+        Args:
+            url: 待检测的 URL
+            api_key: VirusTotal API Key
+            
+        Returns:
+            检测结果字典
+        """
+        try:
+            # 提交 URL 进行分析
+            headers = {
+                'x-apikey': api_key,
+                'Accept': 'application/json'
+            }
+            
+            data = {
+                'url': url
+            }
+            
+            response = requests.post(
+                'https://www.virustotal.com/api/v3/urls',
+                headers=headers,
+                data=data,
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                # 提交成功，但需要等待分析结果
+                # 这里先返回一个占位结果
+                return {
+                    'success': True,
+                    'is_risk': False,
+                    'risk_level': 'unknown',
+                    'message': 'URL 已提交分析，请稍后重试',
+                    'source': 'VirusTotal'
+                }
+            
+            return {
+                'success': False,
+                'is_risk': False,
+                'risk_level': 'unknown',
+                'message': f'提交 URL 失败：{response.status_code}',
+                'source': 'VirusTotal'
+            }
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'is_risk': False,
+                'risk_level': 'unknown',
+                'message': f'提交 URL 异常：{str(e)}',
+                'source': 'VirusTotal'
+            }
     
     @staticmethod
     def check_url_tencent(url: str) -> dict:
@@ -146,35 +301,109 @@ URL: {url}
     @staticmethod
     def check_url(url: str, open_text: str = "", use_ai_fallback: bool = True) -> dict:
         """
-        综合检测URL（降级策略）
-        
+        综合检测 URL（降级策略）
+            
+        优先级：
+        1. VirusTotal API（最准确）
+        2. 本地规则检测（快速过滤）
+        3. AI 大模型分析（智能兜底）
+            
         Args:
             url: 待检测的 URL
             open_text: 上下文描述
             use_ai_fallback: 是否使用 AI 作为备用方案
-            
+                
         Returns:
             检测结果字典
         """
-        # 1. 优先使用腾讯 API（需申请）
-        result_tencent = URLSecurityService.check_url_tencent(url)
-        if result_tencent['success'] and result_tencent['risk_level'] != 'unknown':
-            return result_tencent
+        start_time = time.time()
+        result = None
         
-        # 2. 降级到 AI 分析（通义千问）
-        if use_ai_fallback:
-            result_ai = URLSecurityService.check_url_ai(url, open_text)
-            if result_ai['success']:
-                return result_ai
-        
-        # 3. 全部失败，返回未知
-        return {
-            'success': False,
-            'is_risk': False,
-            'risk_level': 'unknown',
-            'message': '所有检测方式均失败',
-            'source': 'None'
-        }
+        try:
+            # 1. 优先使用 VirusTotal API（最准确）
+            result_vt = URLSecurityService.check_url_virustotal(url)
+            if result_vt['success'] and result_vt['risk_level'] != 'unknown':
+                result = result_vt
+                result['response_time'] = time.time() - start_time
+                # 记录成功日志
+                AuditService.log_security_event(
+                    'URL_DETECTION',
+                    f'URL 检测成功：{url[:50]}... 结果：{result["risk_level"]} 来源：{result["source"]}',
+                    severity='low',
+                    extra_data={
+                        'url': url,
+                        'source': result['source'],
+                        'risk_level': result['risk_level'],
+                        'response_time': result['response_time']
+                    }
+                )
+                return result
+                
+            # 2. 降级到 AI 分析（通义千问）
+            if use_ai_fallback:
+                result_ai = URLSecurityService.check_url_ai(url, open_text)
+                if result_ai['success']:
+                    result = result_ai
+                    result['response_time'] = time.time() - start_time
+                    # 记录 AI 检测日志
+                    AuditService.log_security_event(
+                        'URL_DETECTION',
+                        f'URL AI 检测：{url[:50]}... 结果：{result["risk_level"]}',
+                        severity='low',
+                        extra_data={
+                            'url': url,
+                            'source': 'AI',
+                            'risk_level': result['risk_level'],
+                            'response_time': result['response_time']
+                        }
+                    )
+                    return result
+            
+            # 3. 全部失败，返回未知
+            result = {
+                'success': False,
+                'is_risk': False,
+                'risk_level': 'unknown',
+                'message': '所有检测方式均失败',
+                'source': 'None',
+                'response_time': time.time() - start_time
+            }
+            
+            # 记录失败日志
+            AuditService.log_security_event(
+                'URL_DETECTION_FAILED',
+                f'URL 检测失败：{url[:50]}... 所有方式均失败',
+                severity='medium',
+                extra_data={
+                    'url': url,
+                    'response_time': result['response_time']
+                }
+            )
+            
+            return result
+            
+        except Exception as e:
+            # 记录异常日志
+            response_time = time.time() - start_time
+            AuditService.log_security_event(
+                'URL_DETECTION_ERROR',
+                f'URL 检测异常：{url[:50]}... 错误：{str(e)}',
+                severity='high',
+                extra_data={
+                    'url': url,
+                    'error': str(e),
+                    'response_time': response_time
+                }
+            )
+            
+            return {
+                'success': False,
+                'is_risk': False,
+                'risk_level': 'error',
+                'message': f'检测过程出错：{str(e)}',
+                'source': 'Error',
+                'response_time': response_time
+            }
     
     @staticmethod
     def batch_check_urls(urls: list, open_text: str = "") -> list:

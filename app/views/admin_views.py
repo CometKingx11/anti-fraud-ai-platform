@@ -1,7 +1,7 @@
 # Author: 小土豆233
 # Date: 2026-03-17 00:11:26
 # LastEditTime: 2026-03-17 00:16:37
-# LastEditors: 小土豆233
+# LastEditors: Curry
 # Description: 管理员视图控制器，处理管理员相关的请求
 # FilePath: flask_anti_project\app\views\admin_views.py
 
@@ -24,19 +24,57 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 def dashboard():
     """
     管理员仪表板
-    显示所有用户的提交记录（支持筛选、排序和统计）
+    显示所有用户的提交记录（支持筛选、排序、搜索和分页）
     """
     # 获取筛选参数
     risk_filter = request.args.get('risk_level', 'all')  # all, 极高风险，高风险，中风险，低风险
     sort_by = request.args.get('sort', 'submitted_at')  # submitted_at, final_score, submit_count
     order = request.args.get('order', 'desc')  # asc, desc
     
+    # 获取搜索参数
+    search_keyword = request.args.get('search', '').strip()  # 搜索关键词（学号或姓名）
+    
+    # 获取时间筛选参数
+    date_filter_type = request.args.get('date_filter_type', 'all')  # all, before, after, between
+    start_date = request.args.get('start_date', '').strip()  # 开始时间
+    end_date = request.args.get('end_date', '').strip()  # 结束时间
+    
+    # 获取分页参数
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)  # 每页显示条数，默认 20
+    
     # 基础查询
-    submissions_query = Submission.query.join(User).order_by(getattr(Submission, sort_by, Submission.submitted_at))
+    submissions_query = Submission.query.join(User)
     
     # 风险等级筛选
     if risk_filter != 'all':
         submissions_query = submissions_query.filter(Submission.risk_level == risk_filter)
+    
+    # 搜索筛选（按学号或姓名）
+    if search_keyword:
+        submissions_query = submissions_query.filter(
+            db.or_(
+                User.student_id.like(f'%{search_keyword}%'),
+                User.name.like(f'%{search_keyword}%')
+            )
+        )
+    
+    # 时间筛选
+    if date_filter_type != 'all':
+        if date_filter_type == 'before' and start_date:  # 使用 start_date 作为“之前”的时间点
+            submissions_query = submissions_query.filter(Submission.submitted_at <= start_date)
+        elif date_filter_type == 'after' and start_date:  # 使用 start_date 作为“之后”的时间点
+            submissions_query = submissions_query.filter(Submission.submitted_at >= start_date)
+        elif date_filter_type == 'between':
+            if start_date and end_date:
+                submissions_query = submissions_query.filter(
+                    Submission.submitted_at >= start_date,
+                    Submission.submitted_at <= end_date
+                )
+            elif start_date:
+                submissions_query = submissions_query.filter(Submission.submitted_at >= start_date)
+            elif end_date:
+                submissions_query = submissions_query.filter(Submission.submitted_at <= end_date)
     
     # 排序
     if sort_by == 'final_score':
@@ -61,7 +99,9 @@ def dashboard():
         else:
             submissions_query = submissions_query.order_by(Submission.submitted_at.desc())
     
-    all_submissions = submissions_query.all()
+    # 分页
+    pagination = submissions_query.paginate(page=page, per_page=per_page, error_out=False)
+    all_submissions = pagination.items
     
     # 统计每个用户的提交次数
     submission_counts = db.session.query(
@@ -93,21 +133,32 @@ def dashboard():
     total_students = User.query.filter_by(role='student').count()
     high_risk_count = Submission.query.filter(Submission.risk_level.in_(['高风险', '极高风险'])).count()
     
+    # 未处理安全事件数量
+    from app.models.security_log import SecurityLog
+    unhandled_security_events = SecurityLog.query.filter_by(is_handled=False).count()
+    
     # 导入时区转换工具
     from datetime import timedelta
     from flask import current_app
     
     return render_template('admin/dashboard.html', 
                          submissions=all_submissions,
+                         pagination=pagination,
                          total_submissions=total_submissions,
                          total_students=total_students,
                          high_risk_count=high_risk_count,
+                         unhandled_security_events=unhandled_security_events,
                          high_risk_users=high_risk_users,
                          config=current_app.config,
                          timedelta=timedelta,
                          current_risk=risk_filter,
                          current_sort=sort_by,
-                         current_order=order)
+                         current_order=order,
+                         search_keyword=search_keyword,
+                         per_page=per_page,
+                         date_filter_type=date_filter_type,
+                         start_date=start_date,
+                         end_date=end_date)
 
 
 @admin_bp.route('/users')
@@ -121,13 +172,27 @@ def users():
     # 获取当前页码
     page = request.args.get('page', 1, type=int)
     role_filter = request.args.get('role', 'all')  # all, student, teacher, admin
+    risk_filter = request.args.get('risk', '')  # 极高风险，高风险，中风险，低风险
     search_keyword = request.args.get('search', '').strip()  # 搜索关键词
+    per_page = request.args.get('per_page', 20, type=int)  # 每页显示条数，默认 20
     
     # 根据角色筛选
     if role_filter == 'all':
         users_query = User.query.order_by(User.role, User.student_id)
     else:
         users_query = User.query.filter_by(role=role_filter).order_by(User.student_id)
+    
+    # 如果有风险等级筛选，筛选所有角色
+    if risk_filter and risk_filter != 'all' and role_filter in ['student', 'teacher', 'admin']:
+        # 通过提交记录关联筛选有风险等级的用户
+        user_ids_with_risk = db.session.query(
+            Submission.user_id
+        ).join(User).filter(
+            User.role == role_filter,
+            Submission.risk_level == risk_filter
+        ).distinct().subquery()
+        
+        users_query = users_query.filter(User.id.in_(user_ids_with_risk))
     
     # 如果有搜索关键词，进行筛选
     if search_keyword:
@@ -139,8 +204,8 @@ def users():
             )
         )
     
-    # 分页（每页 20 条）
-    pagination = users_query.paginate(page=page, per_page=20, error_out=False)
+    # 分页（支持动态每页条数）
+    pagination = users_query.paginate(page=page, per_page=per_page, error_out=False)
     users = pagination.items
     
     # 统计各角色数量
@@ -153,6 +218,7 @@ def users():
                          pagination=pagination,
                          current_role=role_filter,
                          search_keyword=search_keyword,
+                         per_page=per_page,  # 传递给模板
                          total_students=total_students,
                          total_teachers=total_teachers,
                          total_admins=total_admins)
@@ -289,8 +355,22 @@ def delete_user(user_id):
             db.session.delete(submission)
         
         # 删除用户
+        deleted_name = user.name
+        deleted_student_id = user.student_id
         User.delete_user(user_id)
-        flash(f'用户 {user.student_id} 已删除', 'success')
+        
+        # 记录操作日志
+        from app.services.audit_service import AuditService
+        AuditService.log_user_action(
+            user=current_user,
+            action_type='DELETE_USER',
+            description=f'删除用户：{deleted_name} ({deleted_student_id})',
+            status='success',
+            target_type='User',
+            target_id=user_id
+        )
+        
+        flash(f'用户 {deleted_student_id} 已删除', 'success')
     except Exception as e:
         flash(f'删除失败：{str(e)}', 'danger')
 
@@ -317,6 +397,17 @@ def reset_password(user_id):
 
         # 重置密码
         User.reset_password(user.student_id, new_password)
+        
+        # 记录操作日志
+        from app.services.audit_service import AuditService
+        AuditService.log_user_action(
+            user=current_user,
+            action_type='RESET_PASSWORD',
+            description=f'重置用户密码：{user.name} ({user.student_id})',
+            status='success',
+            target_type='User',
+            target_id=user.id
+        )
 
         flash(f'用户 {user.student_id} 密码已重置为：{new_password}', 'info')
     except Exception as e:
@@ -416,7 +507,18 @@ def set_user_password(user_id):
     try:
         # 设置新密码
         User.reset_password(user.student_id, new_password)
-
+        
+        # 记录操作日志
+        from app.services.audit_service import AuditService
+        AuditService.log_user_action(
+            user=current_user,
+            action_type='SET_PASSWORD',
+            description=f'为用户设置密码：{user.name} ({user.student_id})',
+            status='success',
+            target_type='User',
+            target_id=user.id
+        )
+        
         flash(f'用户 {user.student_id} 密码已设置为：{new_password}', 'success')
     except Exception as e:
         flash(f'设置失败：{str(e)}', 'danger')
@@ -737,6 +839,12 @@ def export_submission_pdf(submission_id):
             except:
                 assessment_data[field] = []
     
+    # 确保包含用户信息和提交时间
+    if submission.user:
+        assessment_data['student_id'] = submission.user.student_id
+        assessment_data['name'] = submission.user.name
+    assessment_data['submitted_at'] = submission.submitted_at.strftime('%Y-%m-%d %H:%M:%S')
+    
     # 生成 PDF
     pdf_buffer = PDFService.generate_report_pdf(assessment_data)
     
@@ -873,23 +981,32 @@ def ai_report():
     start_date = request.args.get('start_date', '')
     end_date = request.args.get('end_date', '')
     risk_level = request.args.get('risk_level', 'all')
+    generate = request.args.get('generate', '0')  # 是否生成报告的标志
     
     # 如果不是'all'则使用筛选，否则不使用
     risk_filter = risk_level if risk_level != 'all' else None
     
-    # 生成报告
-    report_service = AIReportService()
-    report = report_service.generate_statistical_report(
-        start_date=start_date if start_date else None,
-        end_date=end_date if end_date else None,
-        risk_level=risk_filter
-    )
+    # 只有当用户点击生成按钮时才生成报告
+    report = None
+    if generate == '1':
+        # 生成报告
+        report_service = AIReportService()
+        report = report_service.generate_statistical_report(
+            start_date=start_date if start_date else None,
+            end_date=end_date if end_date else None,
+            risk_level=risk_filter
+        )
+    
+    # 获取缓存信息
+    cache_info = AIReportService.get_cache_info()
     
     return render_template('admin/ai_report.html', 
                          report=report,
                          start_date=start_date,
                          end_date=end_date,
-                         risk_level=risk_level)
+                         risk_level=risk_level,
+                         generate=generate == '1',  # 传递给模板是否已生成
+                         cache_info=cache_info)
 
 
 @admin_bp.route('/export-ai-report', methods=['POST'])
@@ -934,4 +1051,22 @@ def export_ai_report():
         flash(f'❌ 导出失败：{str(e)}', 'danger')
         print(f"导出 AI 报告失败：{str(e)}")
         return redirect(url_for('admin.ai_report'))
+
+
+@admin_bp.route('/clear-ai-report-cache', methods=['POST'])
+@login_required
+@role_required('admin')
+def clear_ai_report_cache():
+    """
+    清除 AI 报告缓存
+    """
+    from app.services.ai_report_service import AIReportService
+    
+    try:
+        AIReportService.clear_cache()
+        flash('✅ 已清除 AI 报告缓存，下次生成将使用最新数据', 'success')
+    except Exception as e:
+        flash(f'❌ 清除缓存失败：{str(e)}', 'danger')
+    
+    return redirect(url_for('admin.ai_report'))
 

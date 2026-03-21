@@ -1,0 +1,400 @@
+{% extends "base.html" %}
+
+{% block title %}日志统计仪表板{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">📊 日志统计仪表板</h2>
+    
+    <!-- 时间范围选择 -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>📅 统计时间范围</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-center">
+                <div class="col-auto">
+                    <label class="form-label me-2">显示最近</label>
+                </div>
+                <div class="col-auto">
+                    <select name="days" class="form-select" onchange="this.form.submit()">
+                        <option value="7" {% if selected_days == 7 %}selected{% endif %}>7 天</option>
+                        <option value="14" {% if selected_days == 14 %}selected{% endif %}>14 天</option>
+                        <option value="30" {% if selected_days == 30 %}selected{% endif %}>30 天</option>
+                        <option value="60" {% if selected_days == 60 %}selected{% endif %}>60 天</option>
+                        <option value="90" {% if selected_days == 90 %}selected{% endif %}>90 天</option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <span class="text-muted">的数据</span>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 统计卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">总操作数</h5>
+                    <h2>{{ stats.total_operations if stats else 0 }}</h2>
+                    <small>最近 {{ selected_days }} 天</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5 class="card-title">失败操作数</h5>
+                    <h2>{{ stats.failed_operations if stats else 0 }}</h2>
+                    <small>占比：{{ "%.2f"|format((stats.failed_operations / stats.total_operations * 100) if stats and stats.total_operations > 0 else 0) }}%</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h5 class="card-title">安全事件总数</h5>
+                    <h2>{{ stats.total_security_events if stats else 0 }}</h2>
+                    <small>最近 {{ selected_days }} 天</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">未处理事件</h5>
+                    <h2>{{ stats.unhandled_events if stats else 0 }}</h2>
+                    <small>需要关注</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 图表区域 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>📈 操作趋势</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="operationTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>🔒 安全事件类型分布</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="securityEventTypeChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>⚠️ 严重程度分布</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="severityDistributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>👥 活跃用户 TOP 10</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="activeUsersChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 最近的未处理事件 -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>⚠️ 最近的未处理安全事件</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>事件类型</th>
+                            <th>描述</th>
+                            <th>严重程度</th>
+                            <th>涉及用户</th>
+                            <th>攻击者 IP</th>
+                            <th>时间</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for event in unhandled_events %}
+                        <tr>
+                            <td>{{ event.id }}</td>
+                            <td>
+                                <span class="badge bg-secondary">{{ event.event_type }}</span>
+                            </td>
+                            <td>{{ event.event_description[:50] }}{% if event.event_description|length > 50 %}...{% endif %}</td>
+                            <td>
+                                {% if event.severity == 'critical' %}
+                                    <span class="badge bg-danger">严重</span>
+                                {% elif event.severity == 'high' %}
+                                    <span class="badge bg-warning">高</span>
+                                {% elif event.severity == 'medium' %}
+                                    <span class="badge bg-info">中</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">低</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if event.user_name %}
+                                    {{ event.user_name }}
+                                    {% if event.student_id %}
+                                        <br><small class="text-muted">{{ event.student_id }}</small>
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>{{ event.attacker_ip or '-' }}</td>
+                            <td>
+                                <small>{{ event.created_at.strftime('%Y-%m-%d %H:%M') if event.created_at else '-' }}</small>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">暂无未处理事件</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 最近的操作日志 -->
+    <div class="card">
+        <div class="card-header">
+            <h5>📝 最近的操作日志</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>操作人</th>
+                            <th>学号</th>
+                            <th>操作类型</th>
+                            <th>描述</th>
+                            <th>IP 地址</th>
+                            <th>状态</th>
+                            <th>时间</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in recent_logs %}
+                        <tr>
+                            <td>{{ log.id }}</td>
+                            <td>
+                                {{ log.user_name or '未知用户' }}
+                            </td>
+                            <td>{{ log.student_id or '-' }}</td>
+                            <td>
+                                <span class="badge bg-secondary">{{ log.action_type }}</span>
+                            </td>
+                            <td>{{ log.action_description[:50] }}{% if log.action_description|length > 50 %}...{% endif %}</td>
+                            <td>{{ log.ip_address or '-' }}</td>
+                            <td>
+                                {% if log.status == 'success' %}
+                                    <span class="badge bg-success">成功</span>
+                                {% elif log.status == 'failed' %}
+                                    <span class="badge bg-danger">失败</span>
+                                {% else %}
+                                    <span class="badge bg-warning">错误</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>{{ log.created_at.strftime('%Y-%m-%d %H:%M') if log.created_at else '-' }}</small>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">暂无数据</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// 操作趋势图表
+const operationTrendCtx = document.getElementById('operationTrendChart').getContext('2d');
+new Chart(operationTrendCtx, {
+    type: 'line',
+    data: {
+        labels: {{ stats.operation_trend_labels|default([])|tojson }},
+        datasets: [{
+            label: '操作次数',
+            data: {{ stats.operation_trend_data|default([])|tojson }},
+            borderColor: 'rgb(54, 162, 235)',
+            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+            tension: 0.4,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                display: true
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+
+// 安全事件类型分布图表
+const securityEventTypeCtx = document.getElementById('securityEventTypeChart').getContext('2d');
+new Chart(securityEventTypeCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ stats.security_event_types_labels|default([])|tojson }},
+        datasets: [{
+            label: '事件数量',
+            data: {{ stats.security_event_types_data|default([])|tojson }},
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.7)',
+                'rgba(54, 162, 235, 0.7)',
+                'rgba(255, 206, 86, 0.7)',
+                'rgba(75, 192, 192, 0.7)',
+                'rgba(153, 102, 255, 0.7)'
+            ],
+            borderColor: [
+                'rgb(255, 99, 132)',
+                'rgb(54, 162, 235)',
+                'rgb(255, 206, 86)',
+                'rgb(75, 192, 192)',
+                'rgb(153, 102, 255)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+
+// 严重程度分布图表
+const severityDistributionCtx = document.getElementById('severityDistributionChart').getContext('2d');
+new Chart(severityDistributionCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['严重 (Critical)', '高 (High)', '中 (Medium)', '低 (Low)'],
+        datasets: [{
+            data: [
+                {{ stats.severity_critical|default(0) }},
+                {{ stats.severity_high|default(0) }},
+                {{ stats.severity_medium|default(0) }},
+                {{ stats.severity_low|default(0) }}
+            ],
+            backgroundColor: [
+                'rgba(220, 38, 38, 0.7)',
+                'rgba(234, 179, 8, 0.7)',
+                'rgba(59, 130, 246, 0.7)',
+                'rgba(107, 114, 128, 0.7)'
+            ],
+            borderColor: [
+                'rgb(220, 38, 38)',
+                'rgb(234, 179, 8)',
+                'rgb(59, 130, 246)',
+                'rgb(107, 114, 128)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// 活跃用户 TOP 10 图表
+const activeUsersCtx = document.getElementById('activeUsersChart').getContext('2d');
+new Chart(activeUsersCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ stats.active_users_labels|default([])|tojson }},
+        datasets: [{
+            label: '操作次数',
+            data: {{ stats.active_users_data|default([])|tojson }},
+            backgroundColor: 'rgba(75, 192, 192, 0.7)',
+            borderColor: 'rgb(75, 192, 192)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            x: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

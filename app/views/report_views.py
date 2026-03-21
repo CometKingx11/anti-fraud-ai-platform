@@ -1,7 +1,7 @@
 # Author: 小土豆233
 # Date: 2026-03-17 00:11:19
 # LastEditTime: 2026-03-17 00:15:13
-# LastEditors: 小土豆233
+# LastEditors: Curry
 # Description: 报告视图控制器，处理评估报告相关的请求
 # FilePath: flask_anti_project\app\views\report_views.py
 
@@ -112,7 +112,7 @@ def export_pdf():
     # 获取评估数据
     assessment_data = session['assessment'].copy()
 
-    # 解析JSON字段
+    # 解析 JSON 字段
     json_fields = ['risk_points', 'suggestions', 'push_contents']
     for field in json_fields:
         if field in assessment_data and isinstance(assessment_data[field], str):
@@ -120,8 +120,14 @@ def export_pdf():
                 assessment_data[field] = json.loads(assessment_data[field])
             except json.JSONDecodeError:
                 assessment_data[field] = []
-
-    # 生成PDF
+        
+    # 添加用户信息
+    from datetime import datetime
+    assessment_data['student_id'] = current_user.student_id
+    assessment_data['name'] = current_user.name
+    assessment_data['submitted_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    
+    # 生成 PDF
     pdf_buffer = PDFService.generate_report_pdf(assessment_data)
 
     # 返回PDF文件

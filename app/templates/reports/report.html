@@ -129,6 +129,16 @@
         margin-right: 5px;
         font-size: 1.1rem;
     }
+    
+    /* 推荐卡片悬停效果 */
+    .hover-shadow:hover {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+        transform: translateY(-4px);
+    }
+    
+    .hover-shadow:hover h6 {
+        color: #0b5ed7 !important;
+    }
 </style>
 {% endblock %}
 
@@ -285,13 +295,45 @@
 
         <!-- 推荐推送内容 -->
         <hr class="my-4">
-        <h5 class="section-title">推荐推送内容</h5>
+        <h5 class="section-title">📚 推荐学习资源</h5>
         {% if data.push_contents and data.push_contents|length > 0 %}
-        <ul class="list-group">
+        <div class="row">
             {% for push in data.push_contents %}
-            <li class="list-group-item">{{ push }}</li>
+            <div class="col-md-6 mb-3">
+                {% if push is mapping and push.url %}
+                <!-- 新格式：包含 url 的对象 -->
+                <div class="card h-100 border-0 shadow-sm hover-shadow" style="transition: all 0.3s; cursor: pointer;" 
+                     onclick="window.open('{{ push.url }}', '_blank')">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-2">
+                            {% if push.type == 'video' %}
+                            <span class="badge bg-danger me-2">🎬 视频</span>
+                            {% elif push.type == 'article' %}
+                            <span class="badge bg-primary me-2">📖 文章</span>
+                            {% elif push.type == 'case' %}
+                            <span class="badge bg-warning text-dark me-2">📋 案例</span>
+                            {% else %}
+                            <span class="badge bg-secondary me-2">🔗 资源</span>
+                            {% endif %}
+                            <h6 class="mb-0 text-primary">{{ push.title }}</h6>
+                        </div>
+                        <p class="text-muted small mb-0">点击查看详情 →</p>
+                    </div>
+                </div>
+                {% else %}
+                <!-- 旧格式：纯文本 -->
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="badge bg-secondary me-2">📝 文本</span>
+                            <h6 class="mb-0 text-muted">{{ push }}</h6>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
             {% endfor %}
-        </ul>
+        </div>
         {% else %}
         <p class="text-muted">暂无推荐推送内容</p>
         {% endif %}

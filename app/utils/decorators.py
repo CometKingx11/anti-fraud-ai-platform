@@ -36,6 +36,28 @@ def role_required(role):
     return decorator
 
 
+def admin_required(f):
+    """
+    管理员权限装饰器
+    限制只有管理员才能访问
+    
+    Returns:
+        function: 装饰器函数
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            flash('请先登录', 'warning')
+            return redirect(url_for('auth.login', next=request.url))
+        
+        if current_user.role != 'admin':
+            flash('权限不足，只有管理员才能访问此页面', 'danger')
+            return redirect(url_for('questionnaire.index'))
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 def roles_allowed(roles):
     """
     多角色权限装饰器

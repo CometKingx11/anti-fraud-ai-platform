@@ -202,7 +202,7 @@ class ExportService:
         生成导出文件名
 
         Args:
-            format_type: 文件格式（csv 或 excel）
+            format_type: 文件格式（csv、excel、pdf 或 ai_report）
 
         Returns:
             str: 文件名
@@ -210,8 +210,10 @@ class ExportService:
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         if format_type == 'csv':
             return f"反诈评估数据_{timestamp}.csv"
-        elif format_type == 'excel':
+        elif format_type == 'excel' or format_type == 'pdf':
             return f"反诈评估数据_{timestamp}.pdf"
+        elif format_type == 'ai_report':
+            return f"AI 统计分析报告_{timestamp}.pdf"
         else:
             return f"export_{timestamp}.{format_type}"
 

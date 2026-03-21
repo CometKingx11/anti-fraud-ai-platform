@@ -7,5 +7,8 @@
 
 from app.models.user import User
 from app.models.submission import Submission
+from app.models.audit_log import AuditLog
+from app.models.security_log import SecurityLog
+from app.models.scoring_rule_version import ScoringRuleVersion
 
-__all__ = ['User', 'Submission']
+__all__ = ['User', 'Submission', 'AuditLog', 'SecurityLog', 'ScoringRuleVersion']

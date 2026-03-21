@@ -1,7 +1,7 @@
 # Author: 小土豆233
 # Date: 2026-03-16 23:42:18
-# LastEditTime: 2026-03-16 23:42:27
-# LastEditors: 小土豆233
+# LastEditTime: 2026-03-20
+# LastEditors: Curry
 # Description: Flask 反诈风险评估系统主应用入口
 # 采用 MVC 架构，实现了模块化设计
 # FilePath: flask_anti_project\app\__init__.py
@@ -40,13 +40,20 @@ def create_app(config_class=Config):
     login_manager.init_app(app)
     migrate.init_app(app, db)
     csrf.init_app(app)
+    
+    # 初始化邮件服务
+    from app.services.email_service import init_mail
+    try:
+        init_mail(app)
+        app.logger.info('邮件服务初始化成功')
+    except Exception as e:
+        app.logger.warning(f'邮件服务初始化失败：{str(e)}，邮件功能将不可用')
 
     # 注入 csrf_token 到模板上下文
     @app.context_processor
     def inject_csrf_token():
         from flask_wtf.csrf import generate_csrf
-        # 使用 lambda 包装，确保在模板中调用时生成 token
-        return dict(csrf_token=lambda: generate_csrf())
+        return dict(csrf_token=generate_csrf)
 
     # 设置登录管理器配置
     login_manager.login_view = 'auth.login'
@@ -89,6 +96,7 @@ def register_blueprints(app):
     from app.views.admin_views import admin_bp
     from app.views.questionnaire_mgmt_views import questionnaire_mgmt_bp
     from app.views.scoring_rules_views import scoring_rules_bp
+    from app.views.audit_views import audit_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(questionnaire_bp)
@@ -96,3 +104,4 @@ def register_blueprints(app):
     app.register_blueprint(admin_bp)
     app.register_blueprint(questionnaire_mgmt_bp)
     app.register_blueprint(scoring_rules_bp)
+    app.register_blueprint(audit_bp)

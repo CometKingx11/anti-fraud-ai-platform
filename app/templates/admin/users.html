@@ -48,25 +48,131 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="btn-group" role="group">
-                <a href="{{ url_for('admin.users', role='all') }}" 
+                <!-- 全部用户按钮 -->
+                <a href="{{ url_for('admin.users', role='all', per_page=per_page, search=search_keyword) }}" 
                    class="btn btn-outline-secondary {{ 'active' if current_role == 'all' else '' }}">
                     <i class="fas fa-users"></i> 全部用户
                 </a>
-                <a href="{{ url_for('admin.users', role='student') }}" 
-                   class="btn btn-outline-success {{ 'active' if current_role == 'student' else '' }}">
-                    <i class="fas fa-user-graduate"></i> 查看学生用户 ({{ total_students }})
-                </a>
-                <a href="{{ url_for('admin.users', role='teacher') }}" 
-                   class="btn btn-outline-info {{ 'active' if current_role == 'teacher' else '' }}">
-                    <i class="fas fa-chalkboard-teacher"></i> 查看教师用户 ({{ total_teachers }})
-                </a>
-                <a href="{{ url_for('admin.users', role='admin') }}" 
-                   class="btn btn-outline-danger {{ 'active' if current_role == 'admin' else '' }}">
-                    <i class="fas fa-user-shield"></i> 查看管理员 ({{ total_admins }})
-                </a>
+                
+                <!-- 学生用户下拉菜单 -->
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-success dropdown-toggle {{ 'active' if current_role == 'student' else '' }}" 
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-user-graduate"></i> 学生用户
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item {{ 'active' if current_role == 'student' and not request.args.get('risk') else '' }}" 
+                               href="{{ url_for('admin.users', role='student', per_page=per_page, search=search_keyword) }}">
+                                <i class="fas fa-list text-primary"></i> 全部学生
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('admin.users', role='student', risk='极高风险', per_page=per_page, search=search_keyword) }}">
+                                <i class="fas fa-radiation text-danger"></i> 极高风险
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('admin.users', role='student', risk='高风险', per_page=per_page, search=search_keyword) }}">
+                                <i class="fas fa-fire-alt text-warning"></i> 高风险
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('admin.users', role='student', risk='中风险', per_page=per_page, search=search_keyword) }}">
+                                <i class="fas fa-exclamation-circle text-info"></i> 中风险
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('admin.users', role='student', risk='低风险', per_page=per_page, search=search_keyword) }}">
+                                <i class="fas fa-check-circle text-success"></i> 低风险
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- 教师用户下拉菜单 -->
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-info dropdown-toggle {{ 'active' if current_role == 'teacher' else '' }}" 
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-chalkboard-teacher"></i> 教师用户
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item {{ 'active' if current_role == 'teacher' and not request.args.get('risk') else '' }}" 
+                               href="{{ url_for('admin.users', role='teacher', per_page=per_page, search=search_keyword) }}">
+                                <i class="fas fa-list text-primary"></i> 全部教师
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('admin.users', role='teacher', risk='极高风险', per_page=per_page, search=search_keyword) }}">
+                                <i class="fas fa-radiation text-danger"></i> 极高风险
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('admin.users', role='teacher', risk='高风险', per_page=per_page, search=search_keyword) }}">
+                                <i class="fas fa-fire-alt text-warning"></i> 高风险
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('admin.users', role='teacher', risk='中风险', per_page=per_page, search=search_keyword) }}">
+                                <i class="fas fa-exclamation-circle text-info"></i> 中风险
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('admin.users', role='teacher', risk='低风险', per_page=per_page, search=search_keyword) }}">
+                                <i class="fas fa-check-circle text-success"></i> 低风险
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- 管理员下拉菜单 -->
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-danger dropdown-toggle {{ 'active' if current_role == 'admin' else '' }}" 
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-user-shield"></i> 管理员
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item {{ 'active' if current_role == 'admin' and not request.args.get('risk') else '' }}" 
+                               href="{{ url_for('admin.users', role='admin', per_page=per_page, search=search_keyword) }}">
+                                <i class="fas fa-list text-primary"></i> 全部管理员
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('admin.users', role='admin', risk='极高风险', per_page=per_page, search=search_keyword) }}">
+                                <i class="fas fa-radiation text-danger"></i> 极高风险
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('admin.users', role='admin', risk='高风险', per_page=per_page, search=search_keyword) }}">
+                                <i class="fas fa-fire-alt text-warning"></i> 高风险
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('admin.users', role='admin', risk='中风险', per_page=per_page, search=search_keyword) }}">
+                                <i class="fas fa-exclamation-circle text-info"></i> 中风险
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('admin.users', role='admin', risk='低风险', per_page=per_page, search=search_keyword) }}">
+                                <i class="fas fa-check-circle text-success"></i> 低风险
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </div>
-            {% if current_role != 'all' %}
-            <a href="{{ url_for('admin.users', role='all') }}" class="btn btn-sm btn-link ms-2">
+            
+            <!-- 清除筛选按钮 -->
+            {% if request.args.get('risk') %}
+            <a href="{{ url_for('admin.users', role=current_role, per_page=per_page, search=search_keyword) }}" class="btn btn-sm btn-link ms-2">
+                <i class="fas fa-times"></i> 清除风险筛选
+            </a>
+            {% elif current_role != 'all' %}
+            <a href="{{ url_for('admin.users', role='all', per_page=per_page, search=search_keyword) }}" class="btn btn-sm btn-link ms-2">
                 <i class="fas fa-times"></i> 清除筛选
             </a>
             {% endif %}
@@ -106,6 +212,7 @@
                 <div class="card-body py-2">
                     <form method="GET" action="{{ url_for('admin.users') }}" class="d-flex align-items-center">
                         <input type="hidden" name="role" value="{{ current_role }}">
+                        <input type="hidden" name="per_page" value="{{ per_page }}">
                         <div class="input-group">
                             <span class="input-group-text bg-light">
                                 <i class="fas fa-search"></i>
@@ -119,7 +226,7 @@
                                 <i class="fas fa-search"></i> 搜索
                             </button>
                             {% if search_keyword %}
-                            <a href="{{ url_for('admin.users', role=current_role) }}" class="btn btn-outline-secondary">
+                            <a href="{{ url_for('admin.users', role=current_role, per_page=per_page) }}" class="btn btn-outline-secondary">
                                 <i class="fas fa-times"></i> 清除
                             </a>
                             {% endif %}
@@ -133,18 +240,33 @@
     <!-- 用户表格 -->
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5>
-                <i class="fas fa-table"></i> 
-                {% if current_role == 'all' %}
-                    用户列表
-                {% elif current_role == 'student' %}
-                    学生用户列表
-                {% elif current_role == 'teacher' %}
-                    教师用户列表
-                {% elif current_role == 'admin' %}
-                    管理员列表
-                {% endif %}
-            </h5>
+            <div>
+                <h5 class="d-inline">
+                    <i class="fas fa-table"></i> 
+                    {% if current_role == 'all' %}
+                        用户列表
+                    {% elif current_role == 'student' %}
+                        学生用户列表
+                    {% elif current_role == 'teacher' %}
+                        教师用户列表
+                    {% elif current_role == 'admin' %}
+                        管理员列表
+                    {% endif %}
+                </h5>
+                <!-- 每页显示条数选择器 -->
+                <div class="d-inline ms-4">
+                    <label class="me-2 text-muted" style="font-size: 14px;">
+                        <i class="fas fa-list"></i> 每页显示：
+                    </label>
+                    <select id="perPageSelect" class="form-select form-select-sm d-inline" style="width: auto;">
+                        <option value="10" {{ 'selected' if per_page == 10 else '' }}>10 条</option>
+                        <option value="20" {{ 'selected' if per_page == 20 else '' }}>20 条</option>
+                        <option value="25" {{ 'selected' if per_page == 25 else '' }}>25 条</option>
+                        <option value="50" {{ 'selected' if per_page == 50 else '' }}>50 条</option>
+                        <option value="100" {{ 'selected' if per_page == 100 else '' }}>100 条</option>
+                    </select>
+                </div>
+            </div>
             <a href="{{ url_for('admin.create_user') }}" class="btn btn-success btn-sm">
                 <i class="fas fa-user-plus"></i> 创建新用户
             </a>
@@ -282,7 +404,7 @@
         <ul class="pagination justify-content-center">
             {% if pagination.has_prev %}
             <li class="page-item">
-                <a class="page-link" href="{{ url_for('admin.users', page=pagination.prev_num, role=current_role) }}" 
+                <a class="page-link" href="{{ url_for('admin.users', page=pagination.prev_num, role=current_role, per_page=per_page, search=search_keyword) }}" 
                    aria-label="Previous">
                     <i class="fas fa-chevron-left"></i>
                 </a>
@@ -301,7 +423,7 @@
                     </li>
                     {% else %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ url_for('admin.users', page=page_num, role=current_role) }}">{{ page_num }}</a>
+                        <a class="page-link" href="{{ url_for('admin.users', page=page_num, role=current_role, per_page=per_page, search=search_keyword) }}">{{ page_num }}</a>
                     </li>
                     {% endif %}
                 {% else %}
@@ -313,7 +435,7 @@
 
             {% if pagination.has_next %}
             <li class="page-item">
-                <a class="page-link" href="{{ url_for('admin.users', page=pagination.next_num, role=current_role) }}" 
+                <a class="page-link" href="{{ url_for('admin.users', page=pagination.next_num, role=current_role, per_page=per_page, search=search_keyword) }}" 
                    aria-label="Next">
                     <i class="fas fa-chevron-right"></i>
                 </a>
@@ -324,6 +446,15 @@
             </li>
             {% endif %}
         </ul>
+        <!-- 分页信息 -->
+        <div class="text-center text-muted">
+            <small>
+                显示第 {{ pagination.page }} 页，共 {{ pagination.pages }} 页，总计 {{ pagination.total }} 个用户
+                {% if per_page %}
+                    （每页显示 {{ per_page }} 条）
+                {% endif %}
+            </small>
+        </div>
     </nav>
 
     <div class="mt-3">
@@ -421,16 +552,24 @@
         form.submit();
     }
 
-    // 初始化 DataTable
+    // 初始化 DataTable（仅用于样式和交互，禁用前端分页）
     $(document).ready(function () {
         var table = $('#usersTable').DataTable({
             language: {
                 url: '//cdn.datatables.net/plug-ins/1.10.24/i18n/Chinese.json'
             },
+            // 禁用前端分页和搜索，使用后端分页
+            paging: false,      // 禁用 DataTables 分页
+            searching: false,   // 禁用 DataTables 搜索（使用自定义搜索）
+            info: false,        // 禁用“显示 X 到 Y 条”信息
+            lengthChange: false, // 禁用 DataTables 的每页条数选择
+            pageLength: -1,     // 显示所有数据
             columnDefs: [{
                 orderable: false,
                 targets: [0, 9]  // 复选框列和操作列不可排序
-            }]
+            }],
+            // 禁用 DataTables 的排序功能（使用后端排序）
+            ordering: false
         });
         
         // 页面加载时检查选中状态
@@ -467,6 +606,269 @@
             
             updateSelectedCount();
         });
+        
+        // 监听每页显示条数选择器变化
+        $('#perPageSelect').on('change', function() {
+            var newPerPage = $(this).val();
+            // 获取当前的筛选条件
+            var urlParams = new URLSearchParams(window.location.search);
+            urlParams.set('per_page', newPerPage);
+            urlParams.set('page', '1'); // 重置到第一页
+            
+            // 跳转到新页面
+            window.location.href = window.location.pathname + '?' + urlParams.toString();
+        });
     });
 </script>
+
+<style>
+/* 统计卡片 - 柔和灰色系 */
+.bg-primary {
+    background: linear-gradient(135deg, #6B7280 0%, #4B5563 100%) !important;
+}
+
+.bg-success {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+}
+
+.bg-info {
+    background: linear-gradient(135deg, #2563EB 0%, #1E40AF 100%) !important;
+}
+
+.bg-danger {
+    background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%) !important;
+}
+
+/* 卡片标题 */
+.card-header h5 {
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+/* 数字展示 */
+h2 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* 按钮组 */
+.btn-group .btn {
+    margin: 0 3px;
+    border-radius: 12px !important;
+    transition: all 0.3s ease;
+}
+
+.btn-group .btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* 表格美化 */
+.table {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+/* 徽章美化 */
+.badge {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    font-weight: 600;
+    padding: 0.5rem 0.8rem;
+}
+
+/* 表单元素 */
+.form-control {
+    border-radius: 12px;
+    border: 2px solid rgba(102, 126, 234, 0.2);
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+/* 警告框 */
+.alert {
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* 批量操作工具栏 */
+#batchActions .alert {
+    background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%);
+    border: 2px solid rgba(107, 114, 128, 0.3);
+}
+
+/* 每页显示选择器 */
+#perPageSelect {
+    border-radius: 10px;
+    border: 2px solid rgba(107, 114, 128, 0.3);
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+#perPageSelect:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(107, 114, 128, 0.2);
+}
+
+/* 分页 */
+.pagination .page-link {
+    border-radius: 12px;
+    margin: 0 3px;
+    border: 2px solid rgba(107, 114, 128, 0.2);
+    color: var(--primary-color);
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.pagination .page-link:hover {
+    background: linear-gradient(135deg, #6B7280 0%, #4B5563 100%);
+    border-color: transparent;
+    color: #fff;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(107, 114, 128, 0.4);
+}
+
+.pagination .page-item.active .page-link {
+    background: linear-gradient(135deg, #6B7280 0%, #4B5563 100%);
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+}
+
+/* 动画效果 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+/* 标题 */
+h1 {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* 复选框美化 */
+input[type="checkbox"] {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary-color);
+}
+
+/* 操作按钮 */
+.btn-group .btn {
+    border-radius: 8px !important;
+}
+
+/* 下拉箭头样式 */
+.dropdown-toggle::after {
+    margin-left: 0.5rem;
+    vertical-align: middle;
+    border-top: 0.3em solid;
+    border-right: 0.3em solid transparent;
+    border-bottom: 0;
+    border-left: 0.3em solid transparent;
+    transition: transform 0.2s ease;
+    opacity: 0.6;
+}
+
+.dropdown-toggle:hover::after {
+    opacity: 1;
+}
+
+.btn-group.show .dropdown-toggle::after {
+    transform: rotate(180deg);
+    opacity: 1;
+}
+
+/* 下拉菜单样式 */
+.dropdown-menu {
+    border-radius: 8px;
+    border: 1px solid #E5E7EB;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+    min-width: 200px;
+    animation: slideDown 0.2s ease;
+    background: #FFFFFF;
+    z-index: 1050 !important;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dropdown-item {
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    margin: 0.25rem 0;
+    transition: var(--transition);
+    color: #374151;
+    font-weight: 500;
+}
+
+.dropdown-item:hover {
+    background: #F3F4F6;
+    color: #1F2937;
+}
+
+.dropdown-item.active {
+    background: #F3F4F6;
+    color: #1F2937;
+}
+
+.dropdown-item i {
+    margin-right: 0.5rem;
+    width: 1.2rem;
+    text-align: center;
+}
+
+.dropdown-divider {
+    border-top: 1px solid #E5E7EB;
+    margin: 0.5rem 0;
+}
+
+/* 按钮激活状态 */
+.btn-outline-success.active,
+.btn-outline-success:active {
+    background: #10B981 !important;
+    border-color: #10B981 !important;
+    color: #FFFFFF !important;
+}
+
+.btn-outline-info.active,
+.btn-outline-info:active {
+    background: #3B82F6 !important;
+    border-color: #3B82F6 !important;
+    color: #FFFFFF !important;
+}
+
+.btn-outline-danger.active,
+.btn-outline-danger:active {
+    background: #EF4444 !important;
+    border-color: #EF4444 !important;
+    color: #FFFFFF !important;
+}
+</style>
 {% endblock %}
