@@ -7,7 +7,10 @@ import os
 from dotenv import load_dotenv
 import secrets
 
+# 加载基础配置
 load_dotenv()
+# 加载邮件配置
+load_dotenv('.env.mail')
 
 
 class Config:
@@ -32,8 +35,11 @@ class Config:
     UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER') or 'uploads'
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 限制文件大小为16MB
 
-    # DashScope API配置
+    # DashScope API 配置
     DASHSCOPE_API_KEY = os.environ.get('DASHSCOPE_API_KEY')
+        
+    # VirusTotal API 配置
+    VIRUSTOTAL_API_KEY = os.environ.get('VIRUSTOTAL_API_KEY')
 
     # 分页配置
     PER_PAGE = 10
