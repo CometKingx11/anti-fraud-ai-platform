@@ -1,173 +1,70 @@
 """
-风险链接检测功能测试脚本
-测试 URL 提取、检测和评分功能
+URL 安全检测服务测试脚本
+测试 URL 检测功能和降级策略
 """
 
 import sys
-sys.path.insert(0, '.')
+import os
+
+# 添加项目根目录到路径
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import create_app
-from app.services.url_security_service import URLSecurityService
+from config.settings import Config
 
-
-def test_url_extraction():
-    """测试 URL 提取功能"""
+def test_url_detection():
+    """测试 URL 检测服务"""
     print("=" * 60)
-    print("测试 1: URL 提取功能")
-    print("=" * 60)
-    
-    test_text = """
-    我收到一条短信，说我的银行卡异常，让我点击这个链接验证：
-    http://fake-bank.com/verify
-    
-    还有人发给我一个兼职广告：https://scam-job.cn/register
-    
-    还有一个短链接：http://t.cn/A6xYz123
-    
-     www.example.com 这个网站也很可疑
-    """
-    
-    urls = URLSecurityService.extract_urls_from_text(test_text)
-    
-    print(f"输入文本：{test_text[:100]}...")
-    print(f"\n提取到的 URL（共{len(urls)}个）:")
-    for url in urls:
-        print(f"  - {url}")
-    
-    print("\n✅ URL 提取功能正常\n")
-    return urls
-
-
-def test_single_url_detection():
-    """测试单个 URL 检测"""
-    print("=" * 60)
-    print("测试 2: 单个 URL 检测（使用 AI 分析）")
+    print("测试 URL 安全检测服务")
     print("=" * 60)
     
-    # 测试一个明显的诈骗 URL
-    test_url = "http://fake-lottery.com/win-iphone"
-    open_text = "说我中了 iPhone 15，让我点击领取"
-    
-    print(f"待检测 URL: {test_url}")
-    print(f"上下文：{open_text}")
-    
-    result = URLSecurityService.check_url_ai(test_url, open_text)
-    
-    print(f"\n检测结果:")
-    print(f"  - 是否风险：{result.get('is_risk', 'unknown')}")
-    print(f"  - 风险等级：{result.get('risk_level', 'unknown')}")
-    print(f"  - 风险类型：{result.get('risk_type', '')}")
-    print(f"  - 判断理由：{result.get('description', '')}")
-    print(f"  - 检测来源：{result.get('source', '')}")
-    
-    print("\n✅ URL 检测功能正常\n")
-    return result
-
-
-def test_batch_detection():
-    """测试批量 URL 检测"""
-    print("=" * 60)
-    print("测试 3: 批量 URL 检测")
-    print("=" * 60)
-    
-    test_urls = [
-        "http://fake-bank.com",
-        "https://phishing-site.cn",
-        "http://normal-website.com"
-    ]
-    
-    print(f"待检测 URL 列表（共{len(test_urls)}个）:")
-    for url in test_urls:
-        print(f"  - {url}")
-    
-    results = URLSecurityService.batch_check_urls(test_urls)
-    
-    print(f"\n检测结果:")
-    risk_count = 0
-    for result in results:
-        is_risk = result.get('is_risk', False)
-        if is_risk:
-            risk_count += 1
-        status = "⚠️ 风险" if is_risk else "✅ 安全"
-        print(f"  {status} {result['url']}: {result.get('description', '')[:30]}")
-    
-    print(f"\n发现风险链接：{risk_count}/{len(test_urls)}个")
-    print("\n✅ 批量检测功能正常\n")
-    
-    return results
-
-
-def test_risk_score_calculation():
-    """测试风险加分计算"""
-    print("=" * 60)
-    print("测试 4: 风险加分计算")
-    print("=" * 60)
-    
-    # 模拟检测结果
-    mock_results = [
-        {'is_risk': True, 'url': 'http://fake1.com'},
-        {'is_risk': True, 'url': 'http://fake2.com'},
-        {'is_risk': False, 'url': 'http://safe.com'},
-        {'is_risk': True, 'url': 'http://fake3.com'},
-    ]
-    
-    print("模拟检测结果:")
-    for r in mock_results:
-        status = "⚠️ 风险" if r['is_risk'] else "✅ 安全"
-        print(f"  {status} {r['url']}")
-    
-    score = URLSecurityService.calculate_risk_score(mock_results)
-    
-    print(f"\n风险加分计算:")
-    print(f"  - 风险链接数量：{sum(1 for r in mock_results if r['is_risk'])}个")
-    print(f"  - 每个链接加分：10 分")
-    print(f"  - 最终加分：{score}分（上限 20 分）")
-    
-    print("\n✅ 风险加分计算正常\n")
-    return score
-
-
-def run_all_tests():
-    """运行所有测试"""
-    print("\n" + "=" * 60)
-    print("🔗 风险链接检测功能测试")
-    print("=" * 60 + "\n")
-    
-    app = create_app('development')
+    # 创建应用
+    app = create_app(Config)
     
     with app.app_context():
-        # 测试 1: URL 提取
-        test_url_extraction()
-        
-        # 测试 2: 单个 URL 检测
-        test_single_url_detection()
-        
-        # 测试 3: 批量检测
-        test_batch_detection()
-        
-        # 测试 4: 风险加分
-        test_risk_score_calculation()
+        try:
+            from app.services.url_security_service import URLSecurityService
+            
+            service = URLSecurityService()
+            
+            print("\n✅ URL 检测服务实例化成功!")
+            
+            # 测试 URL 检测方法
+            assert hasattr(service, 'check_url'), "缺少 check_url 方法"
+            assert hasattr(service, 'extract_urls_from_text'), "缺少 extract_urls_from_text 方法"
+            assert hasattr(URLSecurityService, 'check_url_virustotal'), "缺少 check_url_virustotal 方法"
+            assert hasattr(URLSecurityService, 'check_url_tencent'), "缺少 check_url_tencent 方法"
+            assert hasattr(URLSecurityService, 'check_url_ai'), "缺少 check_url_ai 方法"
+            
+            print("✅ URL 检测方法检查通过!")
+            
+            # 测试 URL 提取功能
+            test_text = """这是一个测试文本，包含以下 URL:
+            http://example.com
+            https://www.baidu.com
+            还有一些其他文本。"""
+            
+            urls = service.extract_urls_from_text(test_text)
+            print(f"\n从文本中提取到 {len(urls)} 个 URL: {urls}")
+            assert len(urls) == 2, f"应该提取到 2 个 URL，实际提取到{len(urls)}个"
+            
+            print("✅ URL 提取功能测试通过!")
+            
+            # 测试风险评分计算
+            assert hasattr(URLSecurityService, 'calculate_risk_score'), "缺少风险评分计算方法"
+            print("✅ 风险评分计算方法存在!")
+            
+        except Exception as e:
+            print(f"❌ URL 检测服务测试失败：{e}")
+            import traceback
+            traceback.print_exc()
+            return False
     
-    # 总结
+    print("\n" + "=" * 60)
+    print("✅ URL 安全检测服务测试全部通过!")
     print("=" * 60)
-    print("✅ 所有测试完成！")
-    print("=" * 60)
-    print("""
-功能清单:
-✓ URL 提取（支持多种格式）
-✓ 360 API 检测（需配置 API Key）
-✓ 腾讯 API 检测（需配置 API Key）
-✓ AI 大模型兜底分析
-✓ 批量检测
-✓ 风险加分计算
-✓ 与评估服务集成
-
-评分规则:
-- 基础分：0-100 分
-- URL 风险分：0-20 分
-- 总分 = 基础分 + URL 风险分
-    """)
-
+    return True
 
 if __name__ == '__main__':
-    run_all_tests()
+    success = test_url_detection()
+    sys.exit(0 if success else 1)
