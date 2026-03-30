@@ -1,9 +1,5 @@
-# Author: 小土豆233
-# Date: 2026-03-17 00:11:26
-# LastEditTime: 2026-03-17 00:16:37
-# LastEditors: Curry
+# Author: 小土豆 233
 # Description: 管理员视图控制器，处理管理员相关的请求
-# FilePath: flask_anti_project\app\views\admin_views.py
 
 from app import db
 from app.models.submission import Submission

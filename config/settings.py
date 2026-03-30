@@ -55,10 +55,12 @@ class Config:
     # 日志配置
     LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
 
-    # 邮件配置（如果需要）
-    MAIL_SERVER = os.environ.get('MAIL_SERVER', 'localhost')
-    MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
-    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'true').lower() in [
+    # 邮件配置（QQ 邮箱推荐：端口 465 + SSL）
+    MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.qq.com')
+    MAIL_PORT = int(os.environ.get('MAIL_PORT', 465))
+    MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL', 'true').lower() in [
+        'true', 'on', '1']
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'false').lower() in [
         'true', 'on', '1']
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')

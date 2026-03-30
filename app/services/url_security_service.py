@@ -1,7 +1,5 @@
 # Author: 小土豆 233
-# Date: 2026-03-18
 # Description: URL 安全检测服务 - 检测风险链接
-# FilePath: flask_anti_project\app\services\url_security_service.py
 
 from flask import current_app
 import requests

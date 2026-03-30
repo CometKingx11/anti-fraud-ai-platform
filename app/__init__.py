@@ -1,10 +1,6 @@
-# Author: 小土豆233
-# Date: 2026-03-16 23:42:18
-# LastEditTime: 2026-03-20
-# LastEditors: Curry
+# Author: 小土豆 233
 # Description: Flask 反诈风险评估系统主应用入口
 # 采用 MVC 架构，实现了模块化设计
-# FilePath: flask_anti_project\app\__init__.py
 
 from config.settings import Config
 from flask_migrate import Migrate

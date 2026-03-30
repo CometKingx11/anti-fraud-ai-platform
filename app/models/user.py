@@ -1,9 +1,5 @@
-# Author: 小土豆233
-# Date: 2026-03-16 23:42:18
-# LastEditTime: 2026-03-16 23:42:27
-# LastEditors: 小土豆233
+# Author: 小土豆 233
 # Description: 用户数据模型，定义了系统中的用户实体
-# FilePath: flask_anti_project\app\models\user.py
 from datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash

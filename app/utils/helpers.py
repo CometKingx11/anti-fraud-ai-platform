@@ -1,9 +1,4 @@
-# Author: 小土豆233
-# Date: 2026-03-17 00:02:44
-# LastEditTime: 2026-03-17 00:12:23
-# LastEditors: 小土豆233
-# Description:
-# FilePath: flask_anti_project\app\utils\helpers.py
+# Author: 小土豆 233
 """
 工具函数模块
 提供各种通用的辅助函数

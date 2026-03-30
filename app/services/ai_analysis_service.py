@@ -1,10 +1,6 @@
-# Author: 小土豆233
-# Date: 2026-03-16 23:42:18
-# LastEditTime: 2026-03-16 23:42:27
-# LastEditors: 小土豆233
+# Author: 小土豆 233
 # Description: AI 分析服务
 # 处理与通义千问 API 的交互，生成评估分析结果
-# FilePath: flask_anti_project\app\services\ai_analysis_service.py
 
 import json
 import base64

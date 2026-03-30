@@ -1,10 +1,6 @@
-# Author: 小土豆233
-# Date: 2026-03-16 23:42:18
-# LastEditTime: 2026-03-16 23:42:27
-# LastEditors: 小土豆233
+# Author: 小土豆 233
 # Description: 评估服务层
 # 处理问卷评估逻辑，包括分数计算、风险分析等功能
-# FilePath: flask_anti_project\app\services\assessment_service.py
 
 from datetime import datetime
 from app.models.submission import Submission
