@@ -1,4 +1,4 @@
-# Author: 小土豆 233
+# Author: 脆心柚
 # Description: 提交数据模型，存储用户的问卷提交记录
 
 import hashlib

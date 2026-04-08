@@ -1,4 +1,4 @@
-# Author: 小土豆 233
+# Author: 脆心柚
 # Description: 模型包初始化文件，导入所有模型类以便统一访问
 
 from app.models.user import User

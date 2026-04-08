@@ -1,4 +1,4 @@
-# Author: 小土豆 233
+# Author: 脆心柚
 # Description: AI 分析服务
 # 处理与通义千问 API 的交互，生成评估分析结果
 

@@ -1,4 +1,4 @@
-# Author: 小土豆 233
+# Author: 脆心柚
 # Description: 管理员视图控制器，处理管理员相关的请求
 
 from app import db

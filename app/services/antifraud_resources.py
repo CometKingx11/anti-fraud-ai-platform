@@ -1,4 +1,4 @@
-# Author: 小土豆 233
+# Author: 脆心柚
 # Description: 反诈教育资源链接库
 
 """

@@ -1,4 +1,4 @@
-# Author: 小土豆 233
+# Author: 脆心柚
 # Description: 用户数据模型，定义了系统中的用户实体
 from datetime import datetime
 from flask_login import UserMixin
