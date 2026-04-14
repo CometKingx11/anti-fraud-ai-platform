@@ -7,7 +7,9 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>{% block title %}大学生反诈风险评估平台{% endblock %}</title>
     <!-- jQuery -->
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
@@ -66,6 +68,8 @@
         .container {
             max-width: 1400px;
             padding: 0 20px;
+            width: 100%;
+            margin: 0 auto;
         }
 
         /* ===== 导航栏美化 ===== */
@@ -540,6 +544,151 @@
 
         ::-webkit-scrollbar-thumb:hover {
             background: #6B7280;
+        }
+
+        /* ===== 响应式媒体查询 ===== */
+        /* 平板设备 (768px - 1024px) */
+        @media (max-width: 1024px) {
+            .container {
+                max-width: 100%;
+                padding: 0 15px;
+            }
+            
+            .container.mt-4 {
+                padding: 1.5rem;
+            }
+            
+            h1 { font-size: 1.75rem; }
+            h2 { font-size: 1.4rem; }
+            h3 { font-size: 1.2rem; }
+            
+            .btn {
+                padding: 0.6rem 1.5rem;
+                font-size: 0.95rem;
+            }
+            
+            .btn-lg {
+                padding: 0.75rem 1.75rem;
+                font-size: 1.05rem;
+            }
+        }
+        
+        /* 手机设备 (小于768px) */
+        @media (max-width: 767.98px) {
+            .container {
+                padding: 0 10px;
+            }
+            
+            .container.mt-4 {
+                margin-top: 1rem !important;
+                padding: 1rem;
+                border-radius: 0;
+                box-shadow: none;
+            }
+            
+            h1 { font-size: 1.5rem; margin-bottom: 1rem; }
+            h2 { font-size: 1.3rem; margin-bottom: 1rem; }
+            h3 { font-size: 1.1rem; margin-bottom: 0.75rem; }
+            h4 { font-size: 1rem; }
+            
+            .navbar {
+                padding: 0.5rem 1rem;
+            }
+            
+            .navbar-brand {
+                font-size: 1.2rem;
+            }
+            
+            .btn {
+                padding: 0.7rem 1.25rem;
+                font-size: 1rem;
+                min-height: 44px; /* 手机端最小点击区域 */
+            }
+            
+            .btn-lg {
+                padding: 0.85rem 1.5rem;
+                font-size: 1.1rem;
+                min-height: 48px;
+            }
+            
+            .form-control, .form-select {
+                padding: 0.75rem;
+                font-size: 1rem;
+                min-height: 44px;
+            }
+            
+            .card {
+                margin-bottom: 1rem;
+            }
+            
+            .card-header {
+                padding: 1rem;
+            }
+            
+            .card-body {
+                padding: 1rem;
+            }
+            
+            .table {
+                font-size: 0.9rem;
+            }
+            
+            .table thead th {
+                padding: 0.75rem 0.5rem;
+                font-size: 0.8rem;
+            }
+            
+            .table tbody td {
+                padding: 0.75rem 0.5rem;
+            }
+            
+            .row {
+                margin-left: -5px;
+                margin-right: -5px;
+            }
+            
+            .row > [class*="col-"] {
+                padding-left: 5px;
+                padding-right: 5px;
+            }
+        }
+        
+        /* 超小屏幕设备 (小于576px) */
+        @media (max-width: 575.98px) {
+            .container {
+                padding: 0 8px;
+            }
+            
+            .container.mt-4 {
+                padding: 0.75rem;
+            }
+            
+            h1 { font-size: 1.3rem; }
+            h2 { font-size: 1.2rem; }
+            h3 { font-size: 1.1rem; }
+            
+            .btn {
+                padding: 0.8rem 1rem;
+                font-size: 0.95rem;
+            }
+            
+            .form-control, .form-select {
+                padding: 0.8rem;
+                font-size: 0.95rem;
+            }
+            
+            .table {
+                font-size: 0.85rem;
+            }
+            
+            .table thead th {
+                padding: 0.5rem 0.25rem;
+                font-size: 0.75rem;
+            }
+            
+            .table tbody td {
+                padding: 0.5rem 0.25rem;
+            }
         }
 
         {% block extra_styles %}{% endblock %}

@@ -2,11 +2,171 @@
 
 {% block title %}问卷 - 大学生反诈风险评估{% endblock %}
 
+{% block extra_styles %}
+<style>
+/* 问卷页面移动端优化 */
+.questionnaire-container {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.question {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: #ffffff;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    transition: all 0.2s ease;
+}
+
+.question:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.question-label {
+    font-size: 1rem;
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+    color: #1f2937;
+}
+
+.form-select {
+    width: 100%;
+    min-height: 48px;
+    font-size: 1rem;
+}
+
+/* 图片预览区域移动端优化 */
+#imagePreview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 1rem;
+}
+
+#imagePreview img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    border: 2px solid #e5e7eb;
+}
+
+/* 移动端优化 */
+@media (max-width: 767.98px) {
+    .questionnaire-container {
+        padding: 0;
+    }
+    
+    h2 {
+        font-size: 1.4rem;
+        margin-bottom: 1rem;
+    }
+    
+    .lead {
+        font-size: 0.95rem;
+        margin-bottom: 2rem;
+    }
+    
+    .question {
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        border-radius: 6px;
+    }
+    
+    .question-label {
+        font-size: 0.95rem;
+        line-height: 1.4;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-select {
+        min-height: 44px;
+        font-size: 0.95rem;
+    }
+    
+    textarea.form-control {
+        min-height: 100px;
+        font-size: 0.95rem;
+    }
+    
+    #autoFillBtn {
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+    
+    #imagePreview img {
+        max-width: 120px;
+        margin: 5px;
+    }
+    
+    /* 章节标题优化 */
+    h4 {
+        font-size: 1.1rem;
+        margin-top: 2rem !important;
+        margin-bottom: 1rem !important;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+}
+
+/* 超小屏幕优化 */
+@media (max-width: 575.98px) {
+    h2 {
+        font-size: 1.3rem;
+    }
+    
+    .question {
+        padding: 0.5rem;
+    }
+    
+    .question-label {
+        font-size: 0.9rem;
+    }
+    
+    .form-select {
+        font-size: 0.9rem;
+    }
+    
+    textarea.form-control {
+        font-size: 0.9rem;
+    }
+    
+    #imagePreview img {
+        max-width: 100px;
+    }
+}
+
+/* 防止表单元素在移动端被放大 */
+input, select, textarea {
+    font-size: 16px !important;
+}
+
+/* 提交按钮优化 */
+.btn-success.btn-lg.w-100 {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+@media (max-width: 767.98px) {
+    .btn-success.btn-lg.w-100 {
+        margin-top: 1.5rem;
+        margin-bottom: 1.5rem;
+        padding: 0.9rem;
+        font-size: 1rem;
+    }
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<h2 class="text-center mb-4">大学生反诈风险评估问卷（28题）</h2>
-<p class="lead text-center text-muted mb-5">
-    请根据实际情况选择（1 = 完全不符合 / 完全不清楚 / 从不 → 5 = 完全符合 / 非常清楚 / 经常），提交后自动评估风险等级。
-</p>
+<div class="questionnaire-container">
+    <h2 class="text-center mb-4">大学生反诈风险评估问卷（28题）</h2>
+    <p class="lead text-center text-muted mb-5">
+        请根据实际情况选择（1 = 完全不符合 / 完全不清楚 / 从不 → 5 = 完全符合 / 非常清楚 / 经常），提交后自动评估风险等级。
+    </p>
 
 <form method="post" action="{{ url_for('questionnaire.submit') }}" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
@@ -164,4 +324,5 @@
     <!-- 提交按钮 -->
     <button type="submit" class="btn btn-success btn-lg w-100 mt-5 mb-5">提交问卷并评估风险</button>
 </form>
+</div>
 {% endblock %}
