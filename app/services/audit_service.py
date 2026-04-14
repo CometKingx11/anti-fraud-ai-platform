@@ -331,18 +331,18 @@ class AuditService:
         
         # 登录时间分布（按小时统计）
         login_hours = db.session.query(
-            func.hour(AuditLog.created_at).label('hour'),
+            func.strftime('%H', AuditLog.created_at).label('hour'),
             func.count(AuditLog.id).label('count')
         ).filter(
             AuditLog.created_at >= cutoff_date,
             AuditLog.action_type == 'LOGIN'
         ).group_by(
-            func.hour(AuditLog.created_at)
+            func.strftime('%H', AuditLog.created_at)
         ).order_by(
-            func.hour(AuditLog.created_at)
+            func.strftime('%H', AuditLog.created_at)
         ).all()
-        
-        hour_labels = [f"{h[0]:02d}:00" for h in login_hours]
+
+        hour_labels = [f"{h[0]}:00" for h in login_hours]
         hour_data = [h[1] for h in login_hours]
         
         # 操作频率 TOP 10 用户
@@ -393,85 +393,61 @@ class AuditService:
     @staticmethod
     def get_question_statistics(days=30):
         """
-        获取问卷题目正确率统计
-        
+        获取问卷提交维度得分统计
+
         Args:
             days (int): 统计最近 N 天的数据
-        
+
         Returns:
-            dict: 题目正确率统计
+            dict: 维度得分统计
         """
         from app.models.submission import Submission
-        from sqlalchemy import func, text
-        import json
-        
+        from sqlalchemy import func
+
         cutoff_date = datetime.utcnow() - timedelta(days=days)
-        
-        # 获取所有提交记录
-        submissions = Submission.query.filter(
+
+        total_submissions = Submission.query.filter(
             Submission.submitted_at >= cutoff_date
-        ).all()
-        
-        if not submissions:
+        ).count()
+
+        if total_submissions == 0:
             return {
                 'question_stats': [],
                 'total_submissions': 0
             }
-        
-        # 统计每道题的得分情况
-        question_scores = {}
-        
-        for submission in submissions:
-            answers = submission.answers
-            if not answers:
-                continue
-            
-            try:
-                # answers 可能是 JSON 字符串或字典
-                if isinstance(answers, str):
-                    answers_data = json.loads(answers)
-                else:
-                    answers_data = answers
-                
-                for answer in answers_data:
-                    question_id = answer.get('question_id')
-                    score = answer.get('score', 0)
-                    max_score = answer.get('max_score', 0)
-                    question_text = answer.get('question_text', f'题目{question_id}')
-                    
-                    if question_id not in question_scores:
-                        question_scores[question_id] = {
-                            'question_id': question_id,
-                            'question_text': question_text[:50],
-                            'total_score': 0,
-                            'max_score': max_score,
-                            'count': 0
-                        }
-                    
-                    question_scores[question_id]['total_score'] += score
-                    question_scores[question_id]['count'] += 1
-            except Exception as e:
-                continue
-        
-        # 计算平均正确率
-        question_stats = []
-        for q_id, stats in question_scores.items():
-            avg_score_rate = (stats['total_score'] / (stats['max_score'] * stats['count']) * 100) if stats['max_score'] > 0 and stats['count'] > 0 else 0
-            question_stats.append({
-                'question_id': q_id,
-                'question_text': stats['question_text'],
-                'avg_score_rate': round(avg_score_rate, 2),
-                'total_attempts': stats['count'],
-                'avg_score': round(stats['total_score'] / stats['count'], 2) if stats['count'] > 0 else 0,
-                'max_score': stats['max_score']
-            })
-        
-        # 按正确率排序
-        question_stats.sort(key=lambda x: x['avg_score_rate'])
-        
+
+        # 按风险等级统计提交数量
+        risk_distribution = db.session.query(
+            Submission.risk_level,
+            func.count(Submission.id).label('count')
+        ).filter(
+            Submission.submitted_at >= cutoff_date,
+            Submission.risk_level.isnot(None)
+        ).group_by(
+            Submission.risk_level
+        ).all()
+
+        # 统计各维度平均分
+        dim_avg = db.session.query(
+            func.avg(Submission.cognitive).label('avg_cognitive'),
+            func.avg(Submission.behavior).label('avg_behavior'),
+            func.avg(Submission.experience).label('avg_experience'),
+            func.avg(Submission.final_score).label('avg_final')
+        ).filter(
+            Submission.submitted_at >= cutoff_date
+        ).first()
+
+        dimension_stats = [
+            {'question_text': '认知维度', 'avg_score': round(dim_avg.avg_cognitive or 0, 2)},
+            {'question_text': '行为维度', 'avg_score': round(dim_avg.avg_behavior or 0, 2)},
+            {'question_text': '经历维度', 'avg_score': round(dim_avg.avg_experience or 0, 2)},
+        ]
+
         return {
-            'question_stats': question_stats[:20],  # 只返回最低正确率的 20 道题
-            'total_submissions': len(submissions)
+            'question_stats': dimension_stats,
+            'total_submissions': total_submissions,
+            'risk_distribution': [{'level': r[0], 'count': r[1]} for r in risk_distribution],
+            'avg_final_score': round(dim_avg.avg_final or 0, 2)
         }
 
 
